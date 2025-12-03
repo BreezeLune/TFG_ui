@@ -1,0 +1,734 @@
+:root {  
+    --primary-color: #00c6ff;  
+    --secondary-color: #0072ff;  
+    --accent-color: #00e5ff;  
+    --bg-dark: #0a0a0a;  
+    --bg-light: #1b1b1b;  
+    --text-primary: #ffffff;  
+    --text-secondary: rgba(255, 255, 255, 0.7);  
+    --glass-bg: rgba(255, 255, 255, 0.05);  
+    --glass-border: rgba(255, 255, 255, 0.2);  
+    --neon-glow: rgba(0, 229, 255, 0.8);  
+}  
+  
+body.main-bg {  
+    background: radial-gradient(circle at center, var(--bg-dark) 0%, var(--bg-light) 100%);  
+    color: var(--text-primary);  
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;  
+    display: flex;  
+    justify-content: center;  
+    align-items: center;  
+    height: 100vh;  
+    margin: 0;  
+    overflow: hidden;  
+    position: relative;  
+}  
+  
+/* 增强版粒子背景效果 - 添加3D层次 */  
+body.main-bg::before {  
+    content: '';  
+    position: absolute;  
+    top: -100%;  
+    left: -100%;  
+    width: 300%;  
+    height: 300%;  
+    background-image:   
+        /* 第一层 - 大粒子 */  
+        radial-gradient(circle at 15% 25%, rgba(0, 198, 255, 0.3) 0%, transparent 20%),  
+        radial-gradient(circle at 85% 15%, rgba(0, 114, 255, 0.3) 0%, transparent 20%),  
+        radial-gradient(circle at 25% 85%, rgba(0, 229, 255, 0.3) 0%, transparent 20%),  
+        radial-gradient(circle at 75% 75%, rgba(0, 255, 255, 0.25) 0%, transparent 18%),  
+        radial-gradient(circle at 45% 35%, rgba(0, 200, 255, 0.25) 0%, transparent 15%),  
+        radial-gradient(circle at 65% 65%, rgba(0, 180, 255, 0.25) 0%, transparent 15%),  
+        radial-gradient(circle at 35% 55%, rgba(0, 220, 255, 0.2) 0%, transparent 12%),  
+        radial-gradient(circle at 55% 25%, rgba(0, 160, 255, 0.2) 0%, transparent 12%),  
+          
+        /* 第二层 - 中等粒子 */  
+        radial-gradient(circle at 20% 50%, rgba(0, 198, 255, 0.15) 0%, transparent 15%),  
+        radial-gradient(circle at 80% 80%, rgba(0, 114, 255, 0.15) 0%, transparent 15%),  
+        radial-gradient(circle at 40% 20%, rgba(0, 229, 255, 0.15) 0%, transparent 15%),  
+        radial-gradient(circle at 60% 70%, rgba(0, 255, 255, 0.1) 0%, transparent 12%),  
+        radial-gradient(circle at 10% 90%, rgba(0, 200, 255, 0.1) 0%, transparent 12%),  
+        radial-gradient(circle at 90% 10%, rgba(0, 170, 255, 0.1) 0%, transparent 12%),  
+        radial-gradient(circle at 30% 60%, rgba(0, 210, 255, 0.1) 0%, transparent 10%),  
+        radial-gradient(circle at 70% 40%, rgba(0, 190, 255, 0.1) 0%, transparent 10%),  
+          
+        /* 第三层 - 小粒子 */  
+        radial-gradient(circle at 25% 30%, rgba(0, 230, 255, 0.08) 0%, transparent 8%),  
+        radial-gradient(circle at 75% 50%, rgba(0, 200, 255, 0.08) 0%, transparent 8%),  
+        radial-gradient(circle at 50% 70%, rgba(0, 180, 255, 0.08) 0%, transparent 8%),  
+        radial-gradient(circle at 15% 60%, rgba(0, 220, 255, 0.06) 0%, transparent 6%),  
+        radial-gradient(circle at 85% 30%, rgba(0, 190, 255, 0.06) 0%, transparent 6%),  
+        radial-gradient(circle at 45% 80%, rgba(0, 210, 255, 0.06) 0%, transparent 6%),  
+        radial-gradient(circle at 65% 20%, rgba(0, 170, 255, 0.06) 0%, transparent 6%);  
+    animation: particleFloat3D 30s ease-in-out infinite;  
+    transform-style: preserve-3d;  
+    pointer-events: none;  
+}  
+
+/* 新增弹动小图标容器 */  
+body.main-bg::after {  
+    content: '';  
+    position: absolute;  
+    top: 0;  
+    left: 0;  
+    width: 100%;  
+    height: 100%;  
+    background:   
+        linear-gradient(45deg, transparent 30%, rgba(0, 229, 255, 0.03) 50%, transparent 70%),  
+        linear-gradient(-45deg, transparent 30%, rgba(0, 198, 255, 0.03) 50%, transparent 70%);  
+    animation: rotateCube3D 40s linear infinite;  
+    transform-style: preserve-3d;  
+    pointer-events: none;  
+}  
+  
+/* 弹动小图标样式 */  
+/* 弹动小图标样式 - 小范围晃动 + 可点击版本 */  
+.bouncing-icon {  
+    position: fixed;  
+    width: 40px;  
+    height: 40px;  
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));  
+    border-radius: 50%;  
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);  
+    z-index: 0;  
+    display: flex;  
+    align-items: center;  
+    justify-content: center;  
+    font-size: 20px;  
+    color: white;  
+    cursor: pointer;  
+    transition: all 0.3s ease;  
+    pointer-events: auto;  
+}  
+  
+.bouncing-icon::before {  
+    content: '';  
+    position: absolute;  
+    width: 100%;  
+    height: 100%;  
+    border-radius: 50%;  
+    background: inherit;  
+    filter: blur(10px);  
+    opacity: 0.6;  
+    z-index: -1;  
+}  
+  
+.bouncing-icon:hover {  
+    transform: scale(1.1);  
+    box-shadow: 0 0 30px rgba(0, 229, 255, 0.8);  
+}  
+  
+.bouncing-icon.popping {  
+    animation: popBubble 0.5s ease-out forwards;  
+}  
+  
+/* 恢复小范围晃动动画 */  
+.bouncing-icon:nth-child(1) {  
+    top: 15%;  
+    left: 10%;  
+    animation: bounceFloat 8s ease-in-out infinite;  
+}  
+  
+.bouncing-icon:nth-child(2) {  
+    top: 25%;  
+    right: 15%;  
+    animation: bounceFloat 9s ease-in-out infinite;  
+    animation-delay: 1.5s;  
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));  
+}  
+  
+.bouncing-icon:nth-child(3) {  
+    bottom: 20%;  
+    left: 8%;  
+    animation: bounceFloat 10s ease-in-out infinite;  
+    animation-delay: 3s;  
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));  
+}  
+  
+.bouncing-icon:nth-child(4) {  
+    bottom: 30%;  
+    right: 12%;  
+    animation: bounceFloat 11s ease-in-out infinite;  
+    animation-delay: 4.5s;  
+    background: linear-gradient(135deg, #ff6b6b, #feca57);  
+}  
+  
+.bouncing-icon:nth-child(5) {  
+    top: 50%;  
+    left: 5%;  
+    animation: bounceFloat 12s ease-in-out infinite;  
+    animation-delay: 2s;  
+    background: linear-gradient(135deg, #48dbfb, #0abde3);  
+}  
+  
+.bouncing-icon:nth-child(6) {  
+    top: 40%;  
+    right: 8%;  
+    animation: bounceFloat 13s ease-in-out infinite;  
+    animation-delay: 5.5s;  
+    background: linear-gradient(135deg, #ff9ff3, #feca57);  
+}  
+  
+/* 小范围晃动动画 */  
+@keyframes bounceFloat {  
+    0%, 100% {  
+        transform: translateY(0) translateX(0) scale(1);  
+        opacity: 0.8;  
+    }  
+    25% {  
+        transform: translateY(-30px) translateX(20px) scale(1.1);  
+        opacity: 1;  
+    }  
+    50% {  
+        transform: translateY(15px) translateX(-15px) scale(0.9);  
+        opacity: 0.9;  
+    }  
+    75% {  
+        transform: translateY(-20px) translateX(25px) scale(1.05);  
+        opacity: 0.95;  
+    }  
+}  
+  
+@keyframes popBubble {  
+    0% {  
+        transform: scale(1);  
+        opacity: 1;  
+    }  
+    30% {  
+        transform: scale(1.5);  
+        opacity: 0.8;  
+    }  
+    100% {  
+        transform: scale(0);  
+        opacity: 0;  
+    }  
+}  
+  
+/* 原地渐变出现动画 */  
+@keyframes reappearBubble {  
+    0% {  
+        transform: scale(0);  
+        opacity: 0;  
+    }  
+    50% {  
+        transform: scale(0.8);  
+        opacity: 0.5;  
+    }  
+    100% {  
+        transform: scale(1);  
+        opacity: 1;  
+    }  
+}  
+  
+.bouncing-icon.popping {  
+    animation: popBubble 0.5s ease-out forwards;  
+    pointer-events: none;  
+}  
+  
+.bouncing-icon.reappearing {  
+    animation: reappearBubble 1s ease-out forwards;  
+    pointer-events: none;  
+}  
+  
+.bouncing-icon.reappearing {  
+    pointer-events: auto;  
+}
+  
+/* 弹动动画 */  
+@keyframes bounceFloat {  
+    0%, 100% {  
+        transform: translateY(0) translateX(0) scale(1);  
+        opacity: 0.8;  
+    }  
+    25% {  
+        transform: translateY(-30px) translateX(20px) scale(1.1);  
+        opacity: 1;  
+    }  
+    50% {  
+        transform: translateY(15px) translateX(-15px) scale(0.9);  
+        opacity: 0.9;  
+    }  
+    75% {  
+        transform: translateY(-20px) translateX(25px) scale(1.05);  
+        opacity: 0.95;  
+    }  
+}  
+  
+/* 增强的3D粒子动画 */  
+@keyframes particleFloat3D {  
+    0%, 100% {   
+        transform:   
+            translate3d(0, 0, 0)   
+            rotateX(0deg)   
+            rotateY(0deg)   
+            rotateZ(0deg)   
+            scale(1);   
+        opacity: 0.8;  
+    }  
+    20% {   
+        transform:   
+            translate3d(120px, -120px, 60px)   
+            rotateX(72deg)   
+            rotateY(36deg)   
+            rotateZ(18deg)   
+            scale(1.15);   
+        opacity: 0.9;  
+    }  
+    40% {   
+        transform:   
+            translate3d(-180px, 180px, -40px)   
+            rotateX(144deg)   
+            rotateY(72deg)   
+            rotateZ(36deg)   
+            scale(0.85);   
+        opacity: 1;  
+    }  
+    60% {   
+        transform:   
+            translate3d(100px, 140px, 100px)   
+            rotateX(216deg)   
+            rotateY(108deg)   
+            rotateZ(54deg)   
+            scale(1.1);   
+        opacity: 0.95;  
+    }  
+    80% {   
+        transform:   
+            translate3d(-80px, -100px, 80px)   
+            rotateX(288deg)   
+            rotateY(144deg)   
+            rotateZ(72deg)   
+            scale(0.95);   
+        opacity: 0.85;  
+    }  
+}
+  
+/* 新增3D旋转立方体背景层 */  
+body.main-bg::after {  
+    content: '';  
+    position: absolute;  
+    top: -100%;  
+    left: -100%;  
+    width: 400%;  
+    height: 400%;  
+    background:   
+        linear-gradient(45deg, transparent 20%, rgba(0, 229, 255, 0.05) 50%, transparent 80%),  
+        linear-gradient(-45deg, transparent 20%, rgba(0, 198, 255, 0.05) 50%, transparent 80%),  
+        linear-gradient(90deg, transparent 20%, rgba(0, 114, 255, 0.03) 50%, transparent 80%),  
+        linear-gradient(0deg, transparent 20%, rgba(0, 255, 255, 0.03) 50%, transparent 80%);  
+    animation: rotateCube3D 40s linear infinite;  
+    transform-style: preserve-3d;  
+    pointer-events: none;  
+}
+  
+.container {  
+    text-align: center;  
+    padding: 50px 70px;  
+    background: var(--glass-bg);  
+    border: 1px solid var(--glass-border);  
+    border-radius: 25px;  
+    box-shadow:   
+        0 0 60px rgba(0, 200, 255, 0.3),  
+        inset 0 0 20px rgba(0, 229, 255, 0.1);  
+    backdrop-filter: blur(15px);  
+    animation: fadeIn 1.5s ease, containerGlow 4s ease-in-out infinite alternate;  
+    position: relative;  
+    z-index: 1;  
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);  
+    overflow: hidden;  
+    transform-style: preserve-3d;  
+    perspective: 1000px;  
+}  
+  
+/* 容器内部光效 */  
+.container::before {  
+    content: '';  
+    position: absolute;  
+    top: -50%;  
+    left: -50%;  
+    width: 200%;  
+    height: 200%;  
+    background: linear-gradient(  
+        45deg,  
+        transparent 30%,  
+        rgba(0, 229, 255, 0.1) 50%,  
+        transparent 70%  
+    );  
+    animation: shimmer3D 8s linear infinite;  
+    transform: rotateZ(0deg) translateZ(10px);  
+    pointer-events: none;  
+}  
+  
+.container:hover {  
+    transform: translateY(-8px) scale(1.02);  
+    box-shadow:   
+        0 0 80px rgba(0, 200, 255, 0.4),  
+        inset 0 0 30px rgba(0, 229, 255, 0.15);  
+    border-color: rgba(0, 229, 255, 0.4);  
+}  
+  
+h1 {  
+    font-size: 2.5rem;  
+    letter-spacing: 3px;  
+    color: var(--accent-color);  
+    margin-bottom: 45px;  
+    text-shadow:   
+        0 0 20px rgba(0, 229, 255, 0.8),  
+        0 0 40px rgba(0, 198, 255, 0.6);  
+    animation: glowText 3s infinite alternate, titleFloat 6s ease-in-out infinite;  
+    background: linear-gradient(45deg, var(--primary-color), var(--accent-color), var(--secondary-color));  
+    background-size: 200% 200%;  
+    -webkit-background-clip: text;  
+    -webkit-text-fill-color: transparent;  
+    background-clip: text;  
+    animation: gradientShift 4s ease infinite, glowText 3s infinite alternate;  
+    position: relative;  
+    z-index: 2;  
+}  
+  
+.button-container {  
+    display: flex;  
+    flex-direction: column;  
+    gap: 25px;  
+    position: relative;  
+    z-index: 2;  
+}  
+  
+.button-container button {  
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));  
+    border: 2px solid rgba(0, 229, 255, 0.3);  
+    color: var(--text-primary);  
+    font-size: 1.2rem;  
+    font-weight: bold;  
+    padding: 16px 0;  
+    border-radius: 15px;  
+    cursor: pointer;  
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);  
+    box-shadow:   
+        0 0 20px rgba(0, 229, 255, 0.4),  
+        inset 0 0 10px rgba(255, 255, 255, 0.1);  
+    position: relative;  
+    overflow: hidden;  
+    min-width: 220px;  
+    text-transform: uppercase;  
+    letter-spacing: 1px;  
+}  
+  
+/* 增强按钮波纹效果 */  
+.button-container button::before {  
+    content: '';  
+    position: absolute;  
+    top: 50%;  
+    left: 50%;  
+    width: 0;  
+    height: 0;  
+    border-radius: 50%;  
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4), transparent);  
+    transform: translate(-50%, -50%);  
+    transition: width 0.8s, height 0.8s;  
+}  
+  
+.button-container button:hover::before {  
+    width: 400px;  
+    height: 400px;  
+}  
+  
+/* 按钮边框动画 */  
+.button-container button::after {  
+    content: '';  
+    position: absolute;  
+    top: -2px;  
+    left: -2px;  
+    right: -2px;  
+    bottom: -2px;  
+    background: linear-gradient(45deg, var(--accent-color), var(--primary-color), var(--secondary-color), var(--accent-color));  
+    background-size: 400% 400%;  
+    border-radius: 15px;  
+    z-index: -1;  
+    opacity: 0;  
+    transition: opacity 0.3s ease;  
+    animation: borderGradient 3s ease infinite;  
+}  
+  
+.button-container button:hover::after {  
+    opacity: 1;  
+}  
+  
+.button-container button:hover {  
+    transform: scale(1.08) translateY(-2px);  
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));  
+    box-shadow:   
+        0 0 30px rgba(0, 229, 255, 0.6),  
+        0 10px 20px rgba(0, 114, 255, 0.3),  
+        inset 0 0 15px rgba(255, 255, 255, 0.2);  
+    border-color: var(--accent-color);  
+}  
+  
+.button-container button:active {  
+    transform: scale(0.96);  
+}  
+  
+/* 按钮图标动画 */  
+.button-container button span {  
+    display: inline-block;  
+    transition: transform 0.3s ease;  
+}  
+  
+.button-container button:hover span {  
+    transform: translateX(5px);  
+}  
+  
+.footer {  
+    position: absolute;  
+    bottom: 20px;  
+    font-size: 0.9rem;  
+    color: var(--text-secondary);  
+    animation: fadeIn 2s ease, footerPulse 4s ease-in-out infinite;  
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);  
+}  
+  
+/* 增强动画定义 */  
+@keyframes glowText {  
+    from {   
+        text-shadow: 0 0 20px var(--accent-color);  
+        filter: brightness(1);  
+    }  
+    to {   
+        text-shadow: 0 0 35px var(--accent-color), 0 0 60px var(--primary-color);  
+        filter: brightness(1.3);  
+    }  
+}  
+  
+@keyframes gradientShift {  
+    0% { background-position: 0% 50%; }  
+    50% { background-position: 100% 50%; }  
+    100% { background-position: 0% 50%; }  
+}  
+  
+@keyframes fadeIn {  
+    from {   
+        opacity: 0;   
+        transform: translateY(30px);   
+    }  
+    to {   
+        opacity: 1;   
+        transform: translateY(0);   
+    }  
+}  
+  
+/* 3D粒子动画 */  
+@keyframes particleFloat3D {  
+    0%, 100% {   
+        transform:   
+            translate3d(0, 0, 0)   
+            rotateX(0deg)   
+            rotateY(0deg)   
+            rotateZ(0deg)   
+            scale(1);   
+        opacity: 0.8;  
+    }  
+    25% {   
+        transform:   
+            translate3d(100px, -100px, 50px)   
+            rotateX(90deg)   
+            rotateY(45deg)   
+            rotateZ(15deg)   
+            scale(1.2);   
+        opacity: 1;  
+    }  
+    50% {   
+        transform:   
+            translate3d(-150px, 150px, -30px)   
+            rotateX(180deg)   
+            rotateY(90deg)   
+            rotateZ(30deg)   
+            scale(0.8);   
+        opacity: 0.9;  
+    }  
+    75% {   
+        transform:   
+            translate3d(80px, 120px, 80px)   
+            rotateX(270deg)   
+            rotateY(135deg)   
+            rotateZ(45deg)   
+            scale(1.1);   
+        opacity: 1;  
+    }  
+}  
+  
+/* 3D立方体旋转动画 */  
+@keyframes rotateCube3D {  
+    0% {   
+        transform:   
+            perspective(1000px)   
+            rotateX(0deg)   
+            rotateY(0deg)   
+            rotateZ(0deg);   
+        opacity: 0.6;  
+    }  
+    25% {   
+        transform:   
+            perspective(1000px)   
+            rotateX(30deg)   
+            rotateY(90deg)   
+            rotateZ(15deg);   
+        opacity: 0.8;  
+    }  
+    50% {   
+        transform:   
+            perspective(1000px)   
+            rotateX(60deg)   
+            rotateY(180deg)   
+            rotateZ(30deg);   
+        opacity: 0.7;  
+    }  
+    75% {   
+        transform:   
+            perspective(1000px)   
+            rotateX(90deg)   
+            rotateY(270deg)   
+            rotateZ(45deg);   
+        opacity: 0.9;  
+    }  
+    100% {   
+        transform:   
+            perspective(1000px)   
+            rotateX(120deg)   
+            rotateY(360deg)   
+            rotateZ(60deg);   
+        opacity: 0.6;  
+    }  
+}  
+  
+@keyframes shimmer3D {  
+    0% {   
+        transform: rotateZ(0deg) translateZ(10px);   
+        opacity: 0.5;  
+    }  
+    50% {   
+        transform: rotateZ(180deg) translateZ(20px);   
+        opacity: 0.8;  
+    }  
+    100% {   
+        transform: rotateZ(360deg) translateZ(10px);   
+        opacity: 0.5;  
+    }  
+}  
+  
+@keyframes containerGlow {  
+    from {   
+        box-shadow:   
+            0 0 60px rgba(0, 200, 255, 0.3),  
+            inset 0 0 20px rgba(0, 229, 255, 0.1);  
+    }  
+    to {   
+        box-shadow:   
+            0 0 80px rgba(0, 200, 255, 0.4),  
+            inset 0 0 25px rgba(0, 229, 255, 0.15);  
+    }  
+}  
+  
+@keyframes shimmer {  
+    0% { transform: rotate(0deg); }  
+    100% { transform: rotate(360deg); }  
+}  
+  
+@keyframes borderGradient {  
+    0% { background-position: 0% 50%; }  
+    50% { background-position: 100% 50%; }  
+    100% { background-position: 0% 50%; }  
+}  
+  
+@keyframes titleFloat {  
+    0%, 100% { transform: translateY(0); }  
+    50% { transform: translateY(-5px); }  
+}  
+  
+@keyframes footerPulse {  
+    0%, 100% { opacity: 0.7; }  
+    50% { opacity: 1; }  
+}  
+  
+/* 响应式设计增强 */  
+@media (max-width: 768px) {  
+    .container {  
+        padding: 35px 50px;  
+        margin: 20px;  
+    }  
+      
+    h1 {  
+        font-size: 2rem;  
+        margin-bottom: 35px;  
+    }  
+      
+    .button-container button {  
+        font-size: 1.1rem;  
+        padding: 14px 0;  
+        min-width: 200px;  
+    }  
+      
+    .button-container {  
+        gap: 20px;  
+    }  
+}  
+  
+@media (max-width: 480px) {  
+    .container {  
+        padding: 25px 35px;  
+        margin: 15px;  
+    }  
+      
+    h1 {  
+        font-size: 1.7rem;  
+        margin-bottom: 30px;  
+        letter-spacing: 2px;  
+    }  
+      
+    .button-container button {  
+        font-size: 1rem;  
+        padding: 12px 0;  
+        min-width: 170px;  
+    }  
+      
+    .button-container {  
+        gap: 18px;  
+    }  
+}  
+  
+/* 加载动画增强 */  
+.loading-overlay {  
+    position: fixed;  
+    top: 0;  
+    left: 0;  
+    width: 100%;  
+    height: 100%;  
+    background: var(--bg-dark);  
+    display: flex;  
+    justify-content: center;  
+    align-items: center;  
+    z-index: 9999;  
+    opacity: 0;  
+    pointer-events: none;  
+    transition: opacity 0.4s ease;  
+}  
+  
+.loading-overlay.active {  
+    opacity: 1;  
+    pointer-events: all;  
+}  
+  
+.loading-spinner {  
+    width: 60px;  
+    height: 60px;  
+    border: 4px solid var(--glass-border);  
+    border-top: 4px solid var(--primary-color);  
+    border-radius: 50%;  
+    animation: spin 1s linear infinite;  
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);  
+}  
+  
+@keyframes spin {  
+    0% { transform: rotate(0deg); }  
+    100% { transform: rotate(360deg); }  
+}
