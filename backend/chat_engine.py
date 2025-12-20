@@ -4,6 +4,83 @@ import shutil
 import speech_recognition as sr
 from zhipuai import ZhipuAI
 
+# 预设音色配置
+PRESET_VOICES = {
+    "default": "./voice_clone/CosyVoice-main/asset/zero_shot_prompt.wav",
+    "cross_lingual": "./voice_clone/CosyVoice-main/asset/cross_lingual_prompt.wav",
+    # 可以继续添加更多预设音色
+    # "voice1": "./voice_clone/CosyVoice-main/asset/voice1.wav",
+    # "voice2": "./voice_clone/CosyVoice-main/asset/voice2.wav",
+}
+
+def get_voice_clone_reference(voice_clone_type, preset_voice_name=None, custom_voice_file=None, fallback_voice_clone=None):
+    """
+    根据选择类型获取语音克隆参考音频路径
+    
+    Args:
+        voice_clone_type: 选择类型
+            - "current_recording": 使用当前录音
+            - "preset_voice": 使用预设音色
+            - "custom": 使用自定义上传的音频
+        preset_voice_name: 预设音色名称（当 voice_clone_type 为 "preset_voice" 时使用）
+        custom_voice_file: 自定义音频文件名（当 voice_clone_type 为 "custom" 时使用）
+        fallback_voice_clone: 兼容旧版本的参数（如果提供了，优先使用）
+    
+    Returns:
+        参考音频文件路径
+    """
+    # 兼容旧版本：如果提供了 voice_clone 参数，直接使用
+    if fallback_voice_clone:
+        if os.path.exists(fallback_voice_clone):
+            print(f"[backend.chat_engine] 使用兼容模式，参考音频: {fallback_voice_clone}")
+            return fallback_voice_clone
+        else:
+            print(f"[backend.chat_engine] 兼容模式路径不存在，使用默认: {fallback_voice_clone}")
+    
+    # 根据类型选择参考音频
+    if voice_clone_type == "current_recording":
+        # 使用当前录音
+        reference_path = "./static/audios/input.wav"
+        if os.path.exists(reference_path):
+            print(f"[backend.chat_engine] 使用当前录音作为参考音频: {reference_path}")
+            return reference_path
+        else:
+            print(f"[backend.chat_engine] 当前录音不存在，使用默认预设音色")
+            return PRESET_VOICES.get("default", "./voice_clone/CosyVoice-main/asset/zero_shot_prompt.wav")
+    
+    elif voice_clone_type == "preset_voice":
+        # 使用预设音色
+        if preset_voice_name and preset_voice_name in PRESET_VOICES:
+            reference_path = PRESET_VOICES[preset_voice_name]
+            if os.path.exists(reference_path):
+                print(f"[backend.chat_engine] 使用预设音色: {preset_voice_name} -> {reference_path}")
+                return reference_path
+            else:
+                print(f"[backend.chat_engine] 预设音色文件不存在: {reference_path}，使用默认")
+        else:
+            print(f"[backend.chat_engine] 未找到预设音色: {preset_voice_name}，使用默认")
+        # 使用默认预设音色
+        return PRESET_VOICES.get("default", "./voice_clone/CosyVoice-main/asset/zero_shot_prompt.wav")
+    
+    elif voice_clone_type == "custom":
+        # 使用自定义上传的音频
+        if custom_voice_file:
+            reference_path = f"./static/audios/custom_voice/{custom_voice_file}"
+            if os.path.exists(reference_path):
+                print(f"[backend.chat_engine] 使用自定义音频: {reference_path}")
+                return reference_path
+            else:
+                print(f"[backend.chat_engine] 自定义音频文件不存在: {reference_path}，使用默认预设音色")
+        else:
+            print(f"[backend.chat_engine] 未提供自定义音频文件名，使用默认预设音色")
+        # 使用默认预设音色
+        return PRESET_VOICES.get("default", "./voice_clone/CosyVoice-main/asset/zero_shot_prompt.wav")
+    
+    else:
+        # 默认使用预设音色
+        print(f"[backend.chat_engine] 未知的语音克隆类型: {voice_clone_type}，使用默认预设音色")
+        return PRESET_VOICES.get("default", "./voice_clone/CosyVoice-main/asset/zero_shot_prompt.wav")
+
 def chat_response(data):
     """
     完整的实时对话系统视频生成逻辑。
@@ -39,11 +116,30 @@ def chat_response(data):
             return os.path.join("static", "videos", "chat_response.mp4")
         
         # 步骤3：语音克隆（CosyVoice）
-        # 获取参考音频路径
-        voice_clone_ref = data.get('voice_clone', './voice_clone/CosyVoice-main/asset/zero_shot_prompt.wav')
+        # 获取参考音频路径（支持新的三种选择方式）
+        voice_clone_type = data.get('voice_clone_type')
+        preset_voice_name = data.get('preset_voice_name')
+        custom_voice_file = data.get('custom_voice_file')
+        fallback_voice_clone = data.get('voice_clone')  # 兼容旧版本
+        
+        voice_clone_ref = get_voice_clone_reference(
+            voice_clone_type=voice_clone_type,
+            preset_voice_name=preset_voice_name,
+            custom_voice_file=custom_voice_file,
+            fallback_voice_clone=fallback_voice_clone
+        )
+        
+        # 最终检查文件是否存在
         if not os.path.exists(voice_clone_ref):
+            print(f"[backend.chat_engine] 警告：参考音频文件不存在: {voice_clone_ref}")
             # 尝试使用默认路径
-            voice_clone_ref = './voice_clone/CosyVoice-main/asset/zero_shot_prompt.wav'
+            default_ref = './voice_clone/CosyVoice-main/asset/zero_shot_prompt.wav'
+            if os.path.exists(default_ref):
+                print(f"[backend.chat_engine] 使用默认参考音频: {default_ref}")
+                voice_clone_ref = default_ref
+            else:
+                print(f"[backend.chat_engine] 错误：默认参考音频也不存在: {default_ref}")
+                return os.path.join("static", "videos", "chat_response.mp4")
         
         # 生成克隆音频
         os.makedirs("./static/audios", exist_ok=True)
