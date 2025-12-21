@@ -37,6 +37,10 @@ def main():
                         choices=['zh', 'en'],
                         default='en',
                         help='输出语言类型: zh (中文), en (英文)')
+    parser.add_argument('--speed',
+                        type=float,
+                        default=1.0,
+                        help='语速调节 (0.5-2.0)，1.0为正常速度')
     parser.add_argument('--output_file',
                         default='cloned_voice.wav',
                         help='输出文件名')
@@ -66,6 +70,11 @@ def main():
     
     print(f"正在合成语音: {tts_text}")
     
+    # 验证语速参数范围
+    if args.speed < 0.5 or args.speed > 2.0:
+        print(f"警告: speed={args.speed} 不在有效范围 [0.5, 2.0] 内，使用默认值 1.0")
+        args.speed = 1.0
+    
     # 执行语音克隆
     output_files = []
     if args.language == 'zh':
@@ -74,7 +83,8 @@ def main():
             tts_text,
             args.prompt_text,
             prompt_speech_16k,
-            stream=False)):
+            stream=False,
+            speed=args.speed)):
             
             output_filename = f'{os.path.splitext(output_filepath)[0]}_{i}.wav'
             torchaudio.save(output_filename, j['tts_speech'], cosyvoice.sample_rate)
@@ -86,7 +96,8 @@ def main():
         for i, j in enumerate(cosyvoice.inference_cross_lingual(
             tts_text_with_tag,
             prompt_speech_16k,
-            stream=False)):
+            stream=False,
+            speed=args.speed)):
             
             output_filename = f'{os.path.splitext(output_filepath)[0]}_{i}.wav'
             torchaudio.save(output_filename, j['tts_speech'], cosyvoice.sample_rate)

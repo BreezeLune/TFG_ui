@@ -158,6 +158,11 @@ def main():
                         choices=['deepspeech', 'hubert'],
                         default='deepspeech',
                         help='使用的音频特征提取器')
+    parser.add_argument('--sh_degree',
+                        type=int,
+                        choices=[0, 1, 2, 3],
+                        default=2,
+                        help='渲染质量等级：0(极速), 1(标准), 2(高保真), 3(最高保真)')
 
     args = parser.parse_args()
 
@@ -230,6 +235,7 @@ def main():
         '-S', args.dataset_path,
         '-M', args.model_path,
         '--audio', feature_file,
+        '--sh_degree', str(args.sh_degree),
     ]
     if use_train:
         cmd.append('--use_train')

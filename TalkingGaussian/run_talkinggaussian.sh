@@ -7,6 +7,7 @@ set -e
 #   --extractor deepspeech|hubert   (default deepspeech)
 #   --dataset  data/May
 #   --model    output/talking_May
+#   --sh_degree 0|1|2|3            (default 2, rendering quality level)
 
 MODE="$1"; shift || true
 
@@ -20,6 +21,7 @@ OUT=""
 EXTRACTOR="deepspeech"
 DATASET="data/May"
 MODEL="output/talking_May"
+SH_DEGREE="2"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -28,6 +30,7 @@ while [[ $# -gt 0 ]]; do
     --extractor) EXTRACTOR="$2"; shift 2;;
     --dataset) DATASET="$2"; shift 2;;
     --model) MODEL="$2"; shift 2;;
+    --sh_degree) SH_DEGREE="$2"; shift 2;;
     *) echo "Unknown arg: $1"; exit 1;;
   esac
 done
@@ -44,7 +47,8 @@ python test_talkinggaussian.py \
   --audio_extractor "$EXTRACTOR" \
   --dataset_path "$DATASET" \
   --model_path "$MODEL" \
-  --output_dir "test_result"
+  --output_dir "test_result" \
+  --sh_degree "$SH_DEGREE"
 
 # Find final file and copy to OUT
 BASENAME="$(basename "$WAV")"
