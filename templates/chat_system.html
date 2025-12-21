@@ -1208,35 +1208,42 @@
             }
 
             function uploadAudio(blob) {
-                if (currentUploadController) { try { currentUploadController.abort(); } catch {} currentUploadController = null; }
-                currentUploadController = new AbortController();
-                const fd = new FormData();
-                fd.append('audio', blob, 'input.wav');
+    if (currentUploadController) { 
+        try { currentUploadController.abort(); } catch {} 
+        currentUploadController = null; 
+    }
+    currentUploadController = new AbortController();
+    const fd = new FormData();
+    fd.append('audio', blob, 'input.wav');
 
-                toggleLoading(true);
+    toggleLoading(true);
 
-                fetch('/save_audio', { method: 'POST', body: fd, signal: currentUploadController.signal })
-                    .then(r => r.json())
-                    .then(res => {
-                        if (res.status === 'success') {
-                            statusMessage.textContent = '录音已保存，开始生成对话...';
-                            triggerChat(); // 自动触发对话生成
-                        } else {
-                            statusMessage.textContent = '保存录音失败';
-                            showNotification('保存录音失败', 'error');
-                            toggleLoading(false);
-                        }
-                    })
-                    .catch(err => {
-                        if (err.name === 'AbortError') console.log('上传中止');
-                        else {
-                            console.error(err);
-                            showNotification('上传失败', 'error');
-                            statusMessage.textContent = '上传失败';
-                        }
-                        toggleLoading(false);
-                    });
+    fetch('/save_audio', { method: 'POST', body: fd, signal: currentUploadController.signal })
+        .then(r => r.json())
+        .then(res => {
+            if (res.status === 'success') {
+                statusMessage.textContent = '录音已保存，请填写右侧选项并点击"开始对话"';
+                window.hasValidRecording = true;  // 设置录音可用标志
+                showNotification('录音保存成功', 'success');
+            } else {
+                statusMessage.textContent = '保存录音失败';
+                window.hasValidRecording = false;  // 清除标志
+                showNotification('保存录音失败', 'error');
+                toggleLoading(false);
             }
+             toggleLoading(false);
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') console.log('上传中止');
+            else {
+                console.error(err);
+                showNotification('上传失败', 'error');
+                statusMessage.textContent = '上传失败';
+                window.hasValidRecording = false;  // 清除标志
+            }
+            toggleLoading(false);
+        });
+}
 
             function triggerChat() {
                 // 首先验证表单
@@ -1396,30 +1403,54 @@
 
             // 绑定开始对话按钮事件
             if(startChatButton) {
-                startChatButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+    startChatButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
 
-                    const validationResult = validateChatForm();
-                    if (!validationResult.isValid) {
-                        showNotification('请填写模型目录地址', 'error');
-                        updateChatStatus('请填写模型目录地址', true);
-                        resetChatVideoDisplay();
-                        return false;
-                    }
+        // 第一步：检查是否有录音
+        if (!window.hasValidRecording) {
+            showNotification('请先录制语音', 'error');
+            updateChatStatus('请先录制语音', true);
+            return false;
+        }
 
-                    triggerChat();
-                });
+        // 第二步：表单验证
+        const validationResult = validateChatForm();
+        if (!validationResult.isValid) {
+            showNotification('请填写模型目录地址', 'error');
+            updateChatStatus('请填写模型目录地址', true);
+            resetChatVideoDisplay();
+            return false;
+        }
+
+        // 第三步：检查语音克隆选项
+        const voiceCloneType = document.querySelector('input[name="voice_clone_type"]:checked').value;
+        
+        if (voiceCloneType === 'custom') {
+            const customFileInput = document.getElementById('custom_voice_file');
+            const filename = customFileInput.getAttribute('data-filename');
+            if (!filename) {
+                showNotification('请先上传自定义音频文件', 'error');
+                updateChatStatus('请先上传自定义音频文件', true);
+                return false;
             }
+        }
+
+        triggerChat();
+    });
+}
 
             // 清理函数
             function cleanup() {
-                if (mediaRecorder && isRecording) { try { mediaRecorder.stop(); } catch {} }
+                if (mediaRecorder && isRecording) { 
+                try { mediaRecorder.stop(); } catch {} 
+                }
                 if (timerInterval) clearInterval(timerInterval);
                 try { if (currentUploadController) currentUploadController.abort(); } catch {}
                 try { if (currentChatController) currentChatController.abort(); } catch {}
+                window.hasValidRecording = false;  // 清除录音标志
                 toggleLoading(false);
-            }
+            }   
 
             // 监听 bfcache 恢复
             window.addEventListener('pageshow', (e) => {
