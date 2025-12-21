@@ -492,7 +492,157 @@
             .video-display, .form-section {  
                 width: 100%;  
             }  
+        }
+
+        /* 单选按钮组样式 */  
+        .radio-group {  
+            display: flex;  
+            gap: 20px;  
+            margin-bottom: 10px;  
         }  
+        
+        .radio-label {  
+            display: flex;  
+            align-items: center;  
+            gap: 8px;  
+            cursor: pointer;  
+            font-weight: normal;  
+            text-transform: none;  
+            letter-spacing: normal;  
+        }  
+        
+        .radio-label input[type="radio"] {  
+            width: auto;  
+            margin: 0;  
+        }  
+        
+        /* 条件显示组样式 */  
+        .conditional-group {  
+            margin-top: 15px;  
+            padding: 15px;  
+            background: rgba(255, 255, 255, 0.03);  
+            border: 1px solid var(--glass-border);  
+            border-radius: 8px;  
+        }  
+        
+        /* 滑块样式 */  
+        .range-container {  
+            margin-bottom: 10px;  
+        }  
+        
+        input[type="range"] {  
+            width: 100%;  
+            height: 6px;  
+            background: var(--glass-border);  
+            border-radius: 3px;  
+            outline: none;  
+            -webkit-appearance: none;  
+        }  
+        
+        input[type="range"]::-webkit-slider-thumb {  
+            -webkit-appearance: none;  
+            appearance: none;  
+            width: 20px;  
+            height: 20px;  
+            background: var(--primary-color);  
+            border-radius: 50%;  
+            cursor: pointer;  
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);  
+        }  
+        
+        input[type="range"]::-moz-range-thumb {  
+            width: 20px;  
+            height: 20px;  
+            background: var(--primary-color);  
+            border-radius: 50%;  
+            cursor: pointer;  
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);  
+        }  
+        
+        .range-labels {  
+            display: flex;  
+            justify-content: space-between;  
+            font-size: 12px;  
+            color: var(--text-secondary);  
+            margin-top: 5px;  
+        }  
+        
+        /* 表单提示样式 */  
+        .form-hint {  
+            display: block;  
+            color: var(--text-secondary);  
+            font-size: 12px;  
+            margin-top: 5px;  
+            font-weight: normal;  
+        }  
+        
+        /* 输入框和按钮组合样式 */  
+        .input-with-button {  
+            display: flex;  
+            gap: 10px;  
+            align-items: center;  
+        }  
+        
+        .input-with-button input {  
+            flex: 1;  
+        }  
+        
+        .input-with-button .browse-btn {  
+            flex-shrink: 0;  
+        }
+
+        .browse-btn {  
+            padding: 12px 24px;  
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));  
+            color: var(--text-primary);  
+            border: 2px solid rgba(0, 229, 255, 0.3);  
+            border-radius: 10px;  
+            font-size: 14px;  
+            font-weight: bold;  
+            cursor: pointer;  
+            transition: all 0.3s ease;  
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);  
+            position: relative;  
+            overflow: hidden;  
+            min-width: 100px;  
+        }  
+        
+        .browse-btn::before {  
+            content: '';  
+            position: absolute;  
+            top: 50%;  
+            left: 50%;  
+            width: 0;  
+            height: 0;  
+            border-radius: 50%;  
+            background: rgba(255, 255, 255, 0.2);  
+            transform: translate(-50%, -50%);  
+            transition: width 0.6s, height 0.6s;  
+        }  
+        
+        .browse-btn:hover::before {  
+            width: 200px;  
+            height: 200px;  
+        }  
+        
+        .browse-btn:hover {  
+            transform: translateY(-2px);  
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);  
+            border-color: var(--accent-color);  
+        }
+        .input-with-button {  
+            display: flex;  
+            gap: 10px;  
+            align-items: center;  
+        }  
+        
+        .input-with-button input {  
+            flex: 1;  
+        }  
+        
+        .input-with-button .browse-btn {  
+            flex-shrink: 0;  
+        }
     </style>  
 </head>  
   
@@ -533,38 +683,129 @@
 
         <!-- 右侧参数区 -->
         <div class="form-section">
-            <form id="chatForm">
-                <div class="form-group">
-                    <label>模型名称</label>
-                    <select name="model_name">
-                        <option value="model1">Model 1</option>
-                        <option value="model2">Model 2</option>
-                        <option value="SyncTalk">SyncTalk</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>模型目录地址</label>
-                    <input type="text" name="model_param" placeholder="请输入模型目录路径">
-                </div>
-
-                <div class="form-group">
-                    <label>语音克隆模型名称</label>
-                    <select name="voice_clone">
-                        <option value="cloneA">Voice Clone A</option>
-                        <option value="cloneB">Voice Clone B</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>对话API选择</label>
-                    <select name="api_choice">
-                        <option value="openai">OpenAI API</option>
-                        <option value="azure">Azure Speech API</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="generate-btn">🎤 开始对话</button>
+            <form id="chatForm">  
+                <div class="form-group">  
+                    <label>模型名称</label>  
+                    <select name="model_name">  
+                        <option value="model1">Model 1</option>  
+                        <option value="model2">Model 2</option>  
+                        <option value="SyncTalk">SyncTalk</option>  
+                        <option value="TalkingGaussian">TalkingGaussian</option>  
+                    </select>  
+                </div>  
+            
+                <div class="form-group">  
+                    <label>模型目录地址</label>  
+                    <div class="input-with-button">  
+                        <input type="text" name="model_param" id="model_param"   
+                            placeholder="请输入模型目录路径" readonly>  
+                        <button type="button" onclick="selectFolder()" class="browse-btn">  
+                            📁 浏览  
+                        </button>  
+                    </div>  
+                </div>  
+            
+                <!-- 语音克隆参考音频选择 -->  
+                <div class="form-group">  
+                    <label>语音克隆参考音频</label>  
+                    <div class="radio-group">  
+                        <label class="radio-label">  
+                            <input type="radio" name="voice_clone_type" value="current_recording" checked>  
+                            <span>当前录音</span>  
+                        </label>  
+                        <label class="radio-label">  
+                            <input type="radio" name="voice_clone_type" value="preset_voice">  
+                            <span>预设音色</span>  
+                        </label>  
+                        <label class="radio-label">  
+                            <input type="radio" name="voice_clone_type" value="custom">  
+                            <span>自定义上传</span>  
+                        </label>  
+                    </div>  
+                    
+                    <!-- 预设音色选择 -->  
+                    <div id="preset_voice_group" class="conditional-group" style="display: none;">  
+                        <label>预设音色</label>  
+                        <select name="preset_voice_name" id="preset_voice_name">  
+                            <option value="default">默认音色</option>  
+                            <option value="cross_lingual">跨语言音色</option>  
+                            <option value="female_1">女声1</option>  
+                            <option value="male_1">男声1</option>  
+                        </select>  
+                    </div>  
+                    
+                    <!-- 自定义上传 -->  
+                    <div id="custom_voice_group" class="conditional-group" style="display: none;">  
+                        <label>上传音频文件</label>  
+                        <input type="file"   
+                            name="custom_voice_file"   
+                            id="custom_voice_file"  
+                            accept=".wav,.mp3,.m4a,.flac">  
+                        <small class="form-hint">  
+                            支持 .wav, .mp3, .m4a, .flac 格式  
+                        </small>  
+                    </div>  
+                </div>  
+            
+                <!-- 语音合成语言 -->  
+                <div class="form-group">  
+                    <label>语音合成语言</label>  
+                    <select name="language" id="language">  
+                        <option value="zh" selected>中文</option>  
+                        <option value="en">English</option>  
+                    </select>  
+                    <small class="form-hint">  
+                        选择 AI 回复的语音合成语言类型  
+                    </small>  
+                </div>  
+            
+                <!-- 语速调节 -->  
+                <div class="form-group">  
+                    <label>语速调节</label>  
+                    <div class="range-container">  
+                        <input type="range"   
+                            name="speed"   
+                            id="speed"  
+                            min="0.5"   
+                            max="2.0"   
+                            step="0.1"   
+                            value="1.0"  
+                            oninput="updateSpeedValue(this.value)">  
+                        <div class="range-labels">  
+                            <span>0.5 (慢速)</span>  
+                            <span id="speedValue">1.0 (正常)</span>  
+                            <span>2.0 (快速)</span>  
+                        </div>  
+                    </div>  
+                    <small class="form-hint">  
+                        调节数字人的说话节奏。数值越小语速越慢（沉稳），数值越大语速越快（活泼）。  
+                    </small>  
+                </div>  
+            
+                <!-- 渲染质量等级 -->  
+                <div class="form-group">  
+                    <label>渲染质量等级</label>  
+                    <select name="sh_degree" id="sh_degree">  
+                        <option value="0">极速模式（最快，基础颜色）</option>  
+                        <option value="1">标准模式（平衡画质与速度）</option>  
+                        <option value="2" selected>高保真模式（推荐，完整光照）</option>  
+                        <option value="3">最高保真模式（最慢，最佳画质）</option>  
+                    </select>  
+                    <small class="form-hint">  
+                        调节渲染细节等级。数值越大画质越好但速度越慢。  
+                    </small>  
+                </div>  
+            
+                <div class="form-group">  
+                    <label>对话API选择</label>  
+                    <select name="api_choice">  
+                        <option value="zhipu">ZhipuAI API</option>  
+                        <option value="openai">OpenAI API</option>  
+                        <option value="azure">Azure Speech API</option>  
+                    </select>  
+                </div>  
+            
+                <button type="submit" class="generate-btn">🎤 开始对话</button>  
             </form>
         </div>
     </div>
@@ -832,7 +1073,130 @@
                 localStorage.setItem('isFullscreen', isFullscreen.toString());  
             });  
             
+        });
+        // 语音克隆类型切换  
+        document.querySelectorAll('input[name="voice_clone_type"]').forEach(radio => {  
+            radio.addEventListener('change', function() {  
+                const presetGroup = document.getElementById('preset_voice_group');  
+                const customGroup = document.getElementById('custom_voice_group');  
+                
+                if (this.value === 'preset_voice') {  
+                    presetGroup.style.display = 'block';  
+                    customGroup.style.display = 'none';  
+                } else if (this.value === 'custom') {  
+                    presetGroup.style.display = 'none';  
+                    customGroup.style.display = 'block';  
+                } else {  
+                    presetGroup.style.display = 'none';  
+                    customGroup.style.display = 'none';  
+                }  
+            });  
         });  
+        
+        // 语速值更新  
+        function updateSpeedValue(value) {  
+            const speedText = value < 1.0 ? '慢速' : value > 1.0 ? '快速' : '正常';  
+            document.getElementById('speedValue').textContent = parseFloat(value).toFixed(1) + ' (' + speedText + ')';  
+        }  
+        
+        // 自定义音频文件上传  
+        document.getElementById('custom_voice_file').addEventListener('change', function(e) {  
+            if (e.target.files.length > 0) {  
+                const file = e.target.files[0];  
+                const formData = new FormData();  
+                formData.append('audio', file);  
+                
+                fetch('/upload_voice_clone', {  
+                    method: 'POST',  
+                    body: formData  
+                })  
+                .then(res => res.json())  
+                .then(data => {  
+                    if (data.status === 'success') {  
+                        // 保存文件名，用于后续提交  
+                        document.getElementById('custom_voice_file').setAttribute('data-filename', data.filename);  
+                        showNotification('音频上传成功', 'success');  
+                    } else {  
+                        showNotification('上传失败：' + data.message, 'error');  
+                    }  
+                })  
+                .catch(err => {  
+                    console.error('上传错误:', err);  
+                    showNotification('上传失败，请重试', 'error');  
+                });  
+            }  
+        });  
+        
+        // 文件夹选择函数  
+        function selectFolder() {  
+            const input = document.createElement('input');  
+            input.type = 'file';  
+            input.webkitdirectory = true;  
+            input.directory = true;  
+            
+            input.onchange = function(e) {  
+                const files = e.target.files;  
+                if (files.length > 0) {  
+                    const path = files[0].webkitRelativePath.split('/')[0];  
+                    document.getElementById('model_param').value = path;  
+                }  
+            };  
+            
+            input.click();  
+        }  
+        
+        // 修改表单提交逻辑  
+        const originalTriggerChat = window.triggerChat;  
+        window.triggerChat = function() {  
+            const form = document.getElementById('chatForm');  
+            const formData = new FormData(form);  
+            
+            // 处理语音克隆类型  
+            const voiceCloneType = formData.get('voice_clone_type');  
+            if (voiceCloneType === 'custom') {  
+                const filename = document.getElementById('custom_voice_file').getAttribute('data-filename');  
+                if (filename) {  
+                    formData.set('custom_voice_file', filename);  
+                }  
+            }  
+            
+            // 发送请求  
+            if (window.currentChatController) {   
+                try { window.currentChatController.abort(); } catch {}   
+                window.currentChatController = null;   
+            }  
+            window.currentChatController = new AbortController();  
+            
+            toggleLoading(true);  
+            
+            fetch('/chat_system', {   
+                method: 'POST',   
+                body: formData,   
+                signal: window.currentChatController.signal   
+            })  
+                .then(r => r.json())  
+                .then(data => {  
+                    if (data.status === 'success') {  
+                        const videoEl = document.getElementById('chatVideo');  
+                        videoEl.src = data.video_path + '?t=' + new Date().getTime();  
+                        videoEl.load();  
+                        videoEl.play().catch(() => {});  
+                        showNotification('对话生成完成', 'success');  
+                        statusMessage.textContent = '对话已生成';  
+                    } else {  
+                        showNotification('生成失败：' + (data.error || '未知错误'), 'error');  
+                        statusMessage.textContent = '生成失败';  
+                    }  
+                })  
+                .catch(err => {  
+                    if (err.name !== 'AbortError') {   
+                        console.error(err);   
+                        showNotification('请求错误', 'error');   
+                        statusMessage.textContent = '请求出错';   
+                    }  
+                })  
+                .finally(() => toggleLoading(false));  
+        };  
     </script>
 </body>
 </html>
