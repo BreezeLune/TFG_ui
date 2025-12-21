@@ -19,3 +19,12 @@ test_data/
 #   - pred_frames/ : 模型预测生成的帧图像（predicted frames）
 #   - lse_temp/ : Lip Sync Error评估的临时文件（包含视频文件等）
 TalkingGaussian/evaluation/_work/
+
+
+# 编辑器配置文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
