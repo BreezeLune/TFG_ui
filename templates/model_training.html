@@ -386,7 +386,144 @@
         @keyframes spin {  
             0% { transform: rotate(0deg); }  
             100% { transform: rotate(360deg); }  
+        } 
+        /* 表单提示样式 */  
+        .form-hint {  
+            display: block;  
+            color: var(--text-secondary);  
+            font-size: 12px;  
+            margin-top: 5px;  
+            font-weight: normal;  
         }  
+        
+        /* 输入框和按钮组合样式 */  
+        .input-with-button {  
+            display: flex;  
+            gap: 10px;  
+            align-items: center;  
+        }  
+        
+        .input-with-button input {  
+            flex: 1;  
+        }  
+        
+        .input-with-button .browse-btn {  
+            flex-shrink: 0;  
+        }  
+        
+        /* 训练结果展示区域 */  
+        .training-result {  
+            margin-top: 20px;  
+            padding: 20px;  
+            background: rgba(0, 229, 255, 0.1);  
+            border: 1px solid rgba(0, 229, 255, 0.3);  
+            border-radius: 12px;  
+            animation: slideIn 0.5s ease;  
+        }  
+        
+        .training-result h3 {  
+            margin: 0 0 15px 0;  
+            color: var(--accent-color);  
+            font-size: 1.2rem;  
+        }  
+        
+        .path-copy-group {  
+            display: flex;  
+            gap: 10px;  
+            align-items: center;  
+        }  
+        
+        .path-output {  
+            flex: 1;  
+            padding: 10px;  
+            background: rgba(255, 255, 255, 0.1);  
+            border: 1px solid var(--glass-border);  
+            border-radius: 6px;  
+            font-family: monospace;  
+            font-size: 14px;  
+        }  
+        
+        .copy-btn {  
+            padding: 8px 16px;  
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));  
+            color: var(--text-primary);  
+            border: 1px solid rgba(0, 229, 255, 0.3);  
+            border-radius: 6px;  
+            font-size: 12px;  
+            font-weight: bold;  
+            cursor: pointer;  
+            transition: all 0.3s ease;  
+        }  
+        
+        .copy-btn:hover {  
+            transform: translateY(-1px);  
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);  
+        }  
+        
+        /* 浅色主题适配 */  
+        body.light-theme .training-result {  
+            background: rgba(99, 102, 241, 0.1);  
+            border-color: rgba(99, 102, 241, 0.3);  
+        }  
+        
+        body.light-theme .path-output {  
+            background: rgba(255, 255, 255, 0.8);  
+            border-color: rgba(99, 102, 241, 0.2);  
+            color: var(--text-primary);  
+        } 
+
+        .browse-btn {  
+            padding: 12px 24px;  
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));  
+            color: var(--text-primary);  
+            border: 2px solid rgba(0, 229, 255, 0.3);  
+            border-radius: 10px;  
+            font-size: 14px;  
+            font-weight: bold;  
+            cursor: pointer;  
+            transition: all 0.3s ease;  
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);  
+            position: relative;  
+            overflow: hidden;  
+            min-width: 100px;  
+        }  
+        
+        .browse-btn::before {  
+            content: '';  
+            position: absolute;  
+            top: 50%;  
+            left: 50%;  
+            width: 0;  
+            height: 0;  
+            border-radius: 50%;  
+            background: rgba(255, 255, 255, 0.2);  
+            transform: translate(-50%, -50%);  
+            transition: width 0.6s, height 0.6s;  
+        }  
+        
+        .browse-btn:hover::before {  
+            width: 200px;  
+            height: 200px;  
+        }  
+        
+        .browse-btn:hover {  
+            transform: translateY(-2px);  
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);  
+            border-color: var(--accent-color);  
+        }
+        .input-with-button {  
+            display: flex;  
+            gap: 10px;  
+            align-items: center;  
+        }  
+        
+        .input-with-button input {  
+            flex: 1;  
+        }  
+        
+        .input-with-button .browse-btn {  
+            flex-shrink: 0;  
+        }
     </style>  
 </head>  
 <body class="subpage-bg"> 
@@ -417,18 +554,23 @@
             <form id="trainForm">  
                 <div class="form-group">  
                     <label>模型选择</label>  
-                    <select name="model_choice">  
-                        <option value="modelA">Model A</option>  
-                        <option value="modelB">Model B</option>  
+                    <select name="model_choice" id="model_choice" onchange="toggleEpochField()">  
+                        <option value="TalkingGaussian">TalkingGaussian</option>  
                         <option value="SyncTalk">SyncTalk</option>  
                     </select>  
                 </div>  
-  
+            
                 <div class="form-group">  
                     <label>参考视频/图像地址</label>  
-                    <input type="text" name="ref_video" placeholder="请输入参考视频或图像的相对路径">  
+                    <div class="input-with-button">  
+                        <input type="text" name="ref_video" id="ref_video"   
+                            placeholder="请输入参考视频或图像的相对路径" readonly>  
+                        <button type="button" onclick="selectFile()" class="browse-btn">  
+                            📁 浏览  
+                        </button>  
+                    </div>  
                 </div>  
-  
+            
                 <div class="form-group">  
                     <label>GPU选择</label>  
                     <select name="gpu_choice">  
@@ -436,19 +578,48 @@
                         <option value="GPU1">GPU 1</option>  
                     </select>  
                 </div>  
-  
-                <div class="form-group">  
-                    <label>Epoch（训练轮数）</label>  
-                    <input type="number" name="epoch" min="1" value="10">  
+            
+                <!-- EPOCH参数 - 仅在选择SyncTalk时显示 -->  
+                <div class="form-group" id="epoch_group" style="display: none;">  
+                    <label>训练轮数 (EPOCH)</label>  
+                    <input type="number"   
+                        name="epoch"   
+                        id="epoch"  
+                        min="1"   
+                        value="100"  
+                        placeholder="输入训练轮数">  
+                    <small class="form-hint">  
+                        此参数仅对 SyncTalk 模型有效。TalkingGaussian 使用固定训练策略。  
+                    </small>  
                 </div>  
-  
+            
                 <div class="form-group">  
                     <label>自定义训练参数</label>  
                     <textarea name="custom_params" placeholder="请输入自定义参数..."></textarea>  
                 </div>  
-  
+            
                 <button type="submit" class="generate-btn">🚀 Training!</button>  
             </form>  
+            
+            <!-- 训练结果展示区域 -->  
+            <div id="training_result" class="training-result" style="display: none;">  
+                <h3>🎉 训练完成</h3>  
+                <div class="form-group">  
+                    <label>模型路径：</label>  
+                    <div class="path-copy-group">  
+                        <input type="text"   
+                            id="model_path_output"   
+                            readonly   
+                            class="path-output">  
+                        <button type="button" onclick="copyModelPath()" class="copy-btn">  
+                            📋 复制  
+                        </button>  
+                    </div>  
+                    <small class="form-hint">  
+                        此路径可用于视频生成和实时对话中的"模型参数"字段  
+                    </small>  
+                </div>  
+            </div>  
         </div>  
     </div>  
   
@@ -594,7 +765,108 @@
                 localStorage.setItem('isFullscreen', isFullscreen.toString());  
             });  
             
-        }); 
+        });
+
+        // EPOCH字段动态显示  
+        function toggleEpochField() {  
+            const modelChoice = document.getElementById('model_choice').value;  
+            const epochGroup = document.getElementById('epoch_group');  
+            
+            if (modelChoice === 'SyncTalk') {  
+                epochGroup.style.display = 'block';  
+            } else {  
+                epochGroup.style.display = 'none';  
+            }  
+        }  
+        
+        // 文件选择函数  
+        function selectFile() {  
+            const input = document.createElement('input');  
+            input.type = 'file';  
+            input.accept = 'video/*,image/*';  
+            
+            input.onchange = function(e) {  
+                const file = e.target.files[0];  
+                if (file) {  
+                    // 这里简化处理，实际应该上传文件并返回路径  
+                    document.getElementById('ref_video').value = file.name;  
+                }  
+            };  
+            
+            input.click();  
+        }  
+        
+        // 复制模型路径  
+        function copyModelPath() {  
+            const modelPathInput = document.getElementById('model_path_output');  
+            modelPathInput.select();  
+            document.execCommand('copy');  
+            showNotification('模型路径已复制到剪贴板', 'success');  
+        }  
+        
+        // 处理训练完成  
+        function handleTrainingComplete(response) {  
+            if (response.status === 'success') {  
+                const modelPath = response.model_path;  
+                document.getElementById('model_path_output').value = modelPath;  
+                document.getElementById('training_result').style.display = 'block';  
+                
+                // 滚动到结果区域  
+                document.getElementById('training_result').scrollIntoView({   
+                    behavior: 'smooth',   
+                    block: 'nearest'   
+                });  
+            }  
+        }  
+        
+        // 修改表单提交逻辑  
+        document.getElementById('trainForm').addEventListener('submit', function (e) {  
+            e.preventDefault();  
+            const formData = new FormData(this);  
+        
+            // 显示加载动画  
+            const loadingOverlay = document.getElementById('loadingOverlay');  
+            loadingOverlay.classList.add('active');  
+        
+            // 立即从表单获取视频路径并播放  
+            const refVideoPath = formData.get('ref_video');  
+            const videoEl = document.getElementById('trainVideo');  
+        
+            if (refVideoPath) {  
+                const newSrc = "/" + refVideoPath.replace("\\", "/") + '?t=' + new Date().getTime();  
+                videoEl.src = newSrc;  
+                videoEl.load();  
+                videoEl.play().catch(e => console.log('自动播放可能被阻止:', e));  
+            }  
+        
+            fetch('/model_training', {  
+                method: 'POST',  
+                body: formData  
+            })  
+                .then(res => res.json())  
+                .then(data => {  
+                    if (data.status === 'success') {  
+                        showNotification('训练完成！', 'success');  
+                        handleTrainingComplete(data);  
+                    } else {  
+                        showNotification('训练失败：' + (data.message || '未知错误'), 'error');  
+                    }  
+                })  
+                .catch(err => {  
+                    console.error('错误:', err);  
+                    showNotification('训练失败，请重试', 'error');  
+                })  
+                .finally(() => {  
+                    setTimeout(() => {  
+                        loadingOverlay.classList.remove('active');  
+                    }, 500);  
+                });  
+        });  
+        
+        // 页面加载时执行一次  
+        document.addEventListener('DOMContentLoaded', function() {  
+            toggleEpochField();  
+        });
     </script>  
 </body>  
 </html>
