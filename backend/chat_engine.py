@@ -3,7 +3,7 @@ import subprocess
 import shutil
 import speech_recognition as sr
 from zhipuai import ZhipuAI
-
+from backend.llm_service import query_llm 
 # 预设音色配置
 PRESET_VOICES = {
     "default": "./CosyVoice/asset/zero_shot_prompt.wav",
@@ -107,9 +107,14 @@ def chat_response(data):
         
         # 步骤2：大模型生成回复
         output_text = "./static/text/output.txt"
-        api_key = os.getenv('ZHIPU_API_KEY', '31af4e1567ad48f49b6d7b914b4145fb.MDVLvMiePGYLRJ7M')
-        model = "glm-4-plus"
-        reply_text = get_ai_response(input_text, output_text, api_key, model)
+        # api_key = os.getenv('ZHIPU_API_KEY', '31af4e1567ad48f49b6d7b914b4145fb.MDVLvMiePGYLRJ7M')
+        # model = "glm-4-plus"
+        # reply_text = get_ai_response(input_text, output_text, api_key, model)
+        api_choice = data.get('api_choice', 'Zhipu AI')
+        reply_text = query_llm(recognized_text, api_choice)
+        # 将回复保存到文件（保持原有逻辑的副作用）
+        with open(output_text, 'w', encoding='utf-8') as f:
+            f.write(reply_text)
         
         if not reply_text:
             print("[backend.chat_engine] LLM回复生成失败")
