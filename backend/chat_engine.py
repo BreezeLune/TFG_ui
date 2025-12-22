@@ -2,6 +2,7 @@ import os
 import subprocess
 import shutil
 import tempfile
+import time
 import speech_recognition as sr
 from zhipuai import ZhipuAI
 from backend.llm_service import query_llm 
@@ -92,9 +93,13 @@ def chat_response(data):
         print(f"  {k}: {v}")
 
     try:
+        # 生成时间戳（用于所有中间文件）
+        ts = time.strftime('%Y%m%d_%H%M%S')
+        
         # 步骤1：语音识别（ASR）
         input_audio = "./static/audios/input.wav"
         input_text = "./static/text/input.txt"
+        input_text_timestamped = f"./static/text/input_{ts}.txt"
         os.makedirs("./static/text", exist_ok=True)
         
         if not os.path.exists(input_audio):
@@ -106,8 +111,15 @@ def chat_response(data):
             print("[backend.chat_engine] 语音识别失败")
             return os.path.join("static", "videos", "chat_response.mp4")
         
+        # 保存带时间戳的ASR结果副本
+        if recognized_text:
+            with open(input_text_timestamped, 'w', encoding='utf-8') as f:
+                f.write(recognized_text)
+            print(f"[backend.chat_engine] ASR结果已保存到: {input_text_timestamped}")
+        
         # 步骤2：大模型生成回复
         output_text = "./static/text/output.txt"
+        output_text_timestamped = f"./static/text/output_{ts}.txt"
         # api_key = os.getenv('ZHIPU_API_KEY', '31af4e1567ad48f49b6d7b914b4145fb.MDVLvMiePGYLRJ7M')
         # model = "glm-4-plus"
         # reply_text = get_ai_response(input_text, output_text, api_key, model)
@@ -116,6 +128,10 @@ def chat_response(data):
         # 将回复保存到文件（保持原有逻辑的副作用）
         with open(output_text, 'w', encoding='utf-8') as f:
             f.write(reply_text)
+        # 同时保存带时间戳的副本
+        with open(output_text_timestamped, 'w', encoding='utf-8') as f:
+            f.write(reply_text)
+        print(f"[backend.chat_engine] LLM回复已保存到: {output_text_timestamped}")
         
         if not reply_text:
             print("[backend.chat_engine] LLM回复生成失败")
@@ -170,6 +186,7 @@ def chat_response(data):
         # 生成克隆音频
         os.makedirs("./static/audios", exist_ok=True)
         tts_output = "./static/audios/tts_output.wav"
+        tts_output_timestamped = f"./static/audios/tts_output_{ts}.wav"
         
         cloned_audio = text_to_speech_cosyvoice(
             text=reply_text,
@@ -178,6 +195,11 @@ def chat_response(data):
             language=language,  # 使用前端选择的语言类型
             speed=speed  # 方案一：语速调节
         )
+        
+        # 如果生成成功，复制一个带时间戳的副本
+        if cloned_audio and os.path.exists(cloned_audio):
+            shutil.copy(cloned_audio, tts_output_timestamped)
+            print(f"[backend.chat_engine] 语音合成输出已保存到: {tts_output_timestamped}")
         
         if not cloned_audio or not os.path.exists(cloned_audio):
             print("[backend.chat_engine] 语音克隆失败")
@@ -329,7 +351,7 @@ def audio_to_text(input_audio, input_text):
                 traceback.print_exc()
                 return None
         
-        # 步骤3: 保存识别结果
+        # 步骤3: 保存识别结果（固定名称，供后续流程使用）
         os.makedirs(os.path.dirname(input_text), exist_ok=True)
         with open(input_text, 'w', encoding='utf-8') as f:
             f.write(text)
@@ -457,7 +479,7 @@ def text_to_speech_cosyvoice(text, prompt_wav, output_file, language='zh', model
         if generated_files:
             # 使用最新的文件
             latest_file = max(generated_files, key=lambda f: os.path.getctime(f))
-            # 复制到目标位置
+            # 复制到目标位置（固定名称，供后续流程使用）
             shutil.copy(latest_file, output_file)
             print(f"[backend.chat_engine] 语音克隆完成: {output_file}")
             return output_file

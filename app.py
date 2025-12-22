@@ -136,10 +136,22 @@ def save_audio():
     # 确保目录存在
     os.makedirs('./static/audios', exist_ok=True)
     
-    # 保存文件
-    audio_file.save('./static/audios/input.wav')
+    # 保存文件（固定名称，供后续流程使用）
+    input_path = './static/audios/input.wav'
+    audio_file.save(input_path)
     
-    return jsonify({'status': 'success', 'message': '音频保存成功'})
+    # 同时保存一个带时间戳的副本（用于历史记录）
+    import time
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    timestamped_path = f'./static/audios/input_{timestamp}.wav'
+    import shutil
+    shutil.copy(input_path, timestamped_path)
+    
+    return jsonify({
+        'status': 'success', 
+        'message': '音频保存成功',
+        'timestamped_path': timestamped_path.replace('\\', '/')
+    })
 
 @app.route('/upload_voice_clone', methods=['POST'])
 def upload_voice_clone():

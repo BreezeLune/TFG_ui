@@ -3,6 +3,7 @@ SpeechRecognition>=3.14.4
 zhipuai
 sniffio
 vosk>=0.3.45
+openai>=1.0.0
 # Python 3.13兼容性依赖（SpeechRecognition会自动安装）
 # standard-aifc>=3.13.0
 # audioop-lts>=0.2.2
