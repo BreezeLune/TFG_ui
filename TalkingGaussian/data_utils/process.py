@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import tqdm
 import json
@@ -6,10 +7,13 @@ import argparse
 import cv2
 import numpy as np
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(current_dir)
+
 def extract_audio(path, out_path, sample_rate=16000):
     
     print(f'[INFO] ===== extract audio from {path} to {out_path} =====')
-    cmd = f'ffmpeg -i {path} -f wav -ar {sample_rate} {out_path}'
+    cmd = f'ffmpeg -y -i {path} -f wav -ar {sample_rate} {out_path}'
     os.system(cmd)
     print(f'[INFO] ===== extracted audio =====')
 
@@ -18,9 +22,9 @@ def extract_audio_features(path, mode='wav2vec'):
 
     print(f'[INFO] ===== extract audio labels for {path} =====')
     if mode == 'wav2vec':
-        cmd = f'python nerf/asr.py --wav {path} --save_feats'
+        cmd = f'python {os.path.join(root_dir, "nerf/asr.py")} --wav {path} --save_feats'
     else: # deepspeech
-        cmd = f'python data_utils/deepspeech_features/extract_ds_features.py --input {path}'
+        cmd = f'python {os.path.join(current_dir, "deepspeech_features/extract_ds_features.py")} --input {path}'
     os.system(cmd)
     print(f'[INFO] ===== extracted audio labels =====')
 
@@ -29,7 +33,7 @@ def extract_audio_features(path, mode='wav2vec'):
 def extract_images(path, out_path, fps=25):
 
     print(f'[INFO] ===== extract images from {path} to {out_path} =====')
-    cmd = f'ffmpeg -i {path} -vf fps={fps} -qmin 1 -q:v 1 -start_number 0 {os.path.join(out_path, "%d.jpg")}'
+    cmd = f'ffmpeg -y -i {path} -vf fps={fps} -qmin 1 -q:v 1 -start_number 0 {os.path.join(out_path, "%d.jpg")}'
     os.system(cmd)
     print(f'[INFO] ===== extracted images =====')
 
@@ -37,7 +41,7 @@ def extract_images(path, out_path, fps=25):
 def extract_semantics(ori_imgs_dir, parsing_dir):
 
     print(f'[INFO] ===== extract semantics from {ori_imgs_dir} to {parsing_dir} =====')
-    cmd = f'python data_utils/face_parsing/test.py --respath={parsing_dir} --imgpath={ori_imgs_dir}'
+    cmd = f'python {os.path.join(current_dir, "face_parsing/test.py")} --respath={parsing_dir} --imgpath={ori_imgs_dir} --modelpath={os.path.join(current_dir, "face_parsing/79999_iter.pth")}'
     os.system(cmd)
     print(f'[INFO] ===== extracted semantics =====')
 
@@ -252,7 +256,7 @@ def face_tracking(ori_imgs_dir):
     tmp_image = cv2.imread(image_paths[0], cv2.IMREAD_UNCHANGED) # [H, W, 3]
     h, w = tmp_image.shape[:2]
 
-    cmd = f'python data_utils/face_tracking/face_tracker.py --path={ori_imgs_dir} --img_h={h} --img_w={w} --frame_num={len(image_paths)}'
+    cmd = f'python {os.path.join(current_dir, "face_tracking/face_tracker.py")} --path={ori_imgs_dir} --img_h={h} --img_w={w} --frame_num={len(image_paths)}'
 
     os.system(cmd)
 
