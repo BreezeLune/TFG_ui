@@ -50,12 +50,20 @@ training_tasks = {}
 def train_model_async(data, task_id):
     """异步执行训练任务"""
     try:
-        model_path = train_model(data)
-        training_tasks[task_id] = {
-            'status': 'completed',
-            'model_path': model_path,
-            'message': f'训练完成，模型路径：{model_path}'
-        }
+        result = train_model(data)
+        if isinstance(result, dict):
+            training_tasks[task_id] = {
+                'status': result.get('status', 'error'),
+                'model_path': result.get('model_path'),
+                'message': result.get('message', '')
+            }
+        else:
+            # 兼容旧返回：只返回路径则认为成功
+            training_tasks[task_id] = {
+                'status': 'success',
+                'model_path': result,
+                'message': f'训练完成，模型路径：{result}'
+            }
     except Exception as e:
         training_tasks[task_id] = {
             'status': 'error',
@@ -145,7 +153,8 @@ def chat_system():
             # 新的语音克隆参数格式
             "voice_clone_type": request.form.get('voice_clone_type'),  # current_recording / preset_voice / custom
             "preset_voice_name": request.form.get('preset_voice_name'),  # 预设音色名称
-            "custom_voice_file": request.form.get('custom_voice_file'),  # 自定义音频文件名
+            "custom_voice_file": request.form.get('custom_voice_file'),  # 自定义音频文件名（上传后返回的文件名）
+            "custom_voice_path": request.form.get('custom_voice_path'),  # 自定义音频完整路径（手动输入）
             # 保留旧参数以兼容（如果前端还未更新）
             "voice_clone": request.form.get('voice_clone'),
             "api_choice": request.form.get('api_choice'),

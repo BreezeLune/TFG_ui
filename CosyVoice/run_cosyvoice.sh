@@ -31,6 +31,14 @@ if [ -z "$MODEL_DIR" ] || [ -z "$PROMPT_WAV" ] || [ -z "$TTS_TEXT" ] || [ -z "$O
   exit 1
 fi
 
+# 固定工作目录到 CosyVoice 目录，输出统一放在 CosyVoice/test_result 下
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+OUTPUT_DIR="$SCRIPT_DIR/test_result"
+mkdir -p "$OUTPUT_DIR"
+# 确保输出文件落在 CosyVoice/test_result 内
+OUTPUT_FILE="$OUTPUT_DIR/$(basename "$OUTPUT_FILE")"
+
 # Build command arguments
 CMD_ARGS=(
   "--model_dir" "$MODEL_DIR"
@@ -52,10 +60,8 @@ if [ -n "$SPEED" ]; then
 fi
 
 # Use conda run to switch to cosyvoice environment
-# 注意：run_cosyvoice.sh 是在项目根目录下通过 `bash ./CosyVoice/run_cosyvoice.sh` 调用，
-# 所以这里需要显式加上 CosyVoice 子目录，否则会在 `/root/TFG_ui` 下找不到脚本。
 conda run -n cosyvoice --no-capture-output \
-    python ./CosyVoice/test_cosyvoice.py "${CMD_ARGS[@]}"
+    python ./test_cosyvoice.py "${CMD_ARGS[@]}"
 
 echo "OK: CosyVoice synthesis completed"
 

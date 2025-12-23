@@ -8,15 +8,16 @@ from zhipuai import ZhipuAI
 from backend.llm_service import query_llm 
 # 预设音色配置
 PRESET_VOICES = {
-    "default": "./CosyVoice/asset/zero_shot_prompt.wav",
-    "cross_lingual": "./CosyVoice/asset/cross_lingual_prompt.wav",
-    "may": "./static/uploads/audios/may_reference.wav",  # 从 May 视频提取的音频
+    "default": "./CosyVoice/asset/zero_shot_prompt.wav",          # 中文女声
+    "cross_lingual": "./CosyVoice/asset/cross_lingual_prompt.wav",# 中文男声
+    "may": "./static/uploads/audios/may_reference.wav",           # May 英文长音频
+    "may_en": "./static/uploads/audios/may_short.wav",            # May 英文女声（裁剪版，推荐）
     # 可以继续添加更多预设音色
     # "voice1": "./CosyVoice/asset/voice1.wav",
     # "voice2": "./CosyVoice/asset/voice2.wav",
 }
 
-def get_voice_clone_reference(voice_clone_type, preset_voice_name=None, custom_voice_file=None, fallback_voice_clone=None):
+def get_voice_clone_reference(voice_clone_type, preset_voice_name=None, custom_voice_file=None, custom_voice_path=None, fallback_voice_clone=None):
     """
     根据选择类型获取语音克隆参考音频路径
     
@@ -66,16 +67,19 @@ def get_voice_clone_reference(voice_clone_type, preset_voice_name=None, custom_v
         return PRESET_VOICES.get("default", "./CosyVoice/asset/zero_shot_prompt.wav")
     
     elif voice_clone_type == "custom":
-        # 使用自定义上传的音频
+        # 优先使用用户输入的完整路径；否则回落到 custom_voice_file（custom_voice 目录）
+        if custom_voice_path and os.path.exists(custom_voice_path):
+            print(f"[backend.chat_engine] 使用自定义音频(路径): {custom_voice_path}")
+            return custom_voice_path
         if custom_voice_file:
             reference_path = f"./static/audios/custom_voice/{custom_voice_file}"
             if os.path.exists(reference_path):
-                print(f"[backend.chat_engine] 使用自定义音频: {reference_path}")
+                print(f"[backend.chat_engine] 使用自定义音频(文件名): {reference_path}")
                 return reference_path
             else:
                 print(f"[backend.chat_engine] 自定义音频文件不存在: {reference_path}，使用默认预设音色")
         else:
-            print(f"[backend.chat_engine] 未提供自定义音频文件名，使用默认预设音色")
+            print(f"[backend.chat_engine] 未提供自定义音频文件，使用默认预设音色")
         # 使用默认预设音色
         return PRESET_VOICES.get("default", "./CosyVoice/asset/zero_shot_prompt.wav")
     
@@ -125,7 +129,16 @@ def chat_response(data):
         # model = "glm-4-plus"
         # reply_text = get_ai_response(input_text, output_text, api_key, model)
         api_choice = data.get('api_choice', 'zhipu')
-        reply_text = query_llm(recognized_text, api_choice)
+        cosyvoice_params = data.get('cosyvoice_params', {})
+        language = cosyvoice_params.get('language', 'zh')
+
+        # 根据 language 为 LLM 添加语言指令
+        if language == 'en':
+            llm_input = f"Please answer in English: {recognized_text}"
+        else:
+            llm_input = f"请用中文回答：{recognized_text}"
+
+        reply_text = query_llm(llm_input, api_choice)
         # 将回复保存到文件（保持原有逻辑的副作用）
         with open(output_text, 'w', encoding='utf-8') as f:
             f.write(reply_text)
@@ -143,12 +156,14 @@ def chat_response(data):
         voice_clone_type = data.get('voice_clone_type')
         preset_voice_name = data.get('preset_voice_name')
         custom_voice_file = data.get('custom_voice_file')
+        custom_voice_path = data.get('custom_voice_path')
         fallback_voice_clone = data.get('voice_clone')  # 兼容旧版本
         
         voice_clone_ref = get_voice_clone_reference(
             voice_clone_type=voice_clone_type,
             preset_voice_name=preset_voice_name,
             custom_voice_file=custom_voice_file,
+            custom_voice_path=custom_voice_path,
             fallback_voice_clone=fallback_voice_clone
         )
         
@@ -403,10 +418,48 @@ def text_to_speech_cosyvoice(text, prompt_wav, output_file, language='zh', model
         生成的音频文件路径，失败返回None
     """
     try:
-        # 默认模型目录
+        # 统一绝对路径，避免 run_cosyvoice.sh 内部 cd 导致路径错位
+        cosyvoice_root = os.path.abspath('./CosyVoice')
         if model_dir is None:
-            model_dir = './CosyVoice/pretrained_models/CosyVoice2-0.5B'
-        
+            model_dir = os.path.join(cosyvoice_root, 'pretrained_models', 'CosyVoice2-0.5B')
+        else:
+            model_dir = os.path.abspath(model_dir)
+
+        prompt_wav = os.path.abspath(prompt_wav)
+        output_file = os.path.abspath(output_file)
+
+        # 如果参考音频超过 30s，先截断到 30s（CosyVoice 限制）
+        def _duration_sec(wav_path: str) -> float:
+            try:
+                r = subprocess.run(
+                    ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", wav_path],
+                    capture_output=True, text=True, check=True
+                )
+                return float(r.stdout.strip())
+            except Exception:
+                return 0.0
+
+        def _trim_wav(src, dst, max_sec=30):
+            # 强制重采样 16k 单声道并截断，避免元数据导致时长 >30s
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", src,
+                "-t", str(max_sec),
+                "-ar", "16000",
+                "-ac", "1",
+                "-c:a", "pcm_s16le",
+                dst
+            ]
+            subprocess.run(cmd, capture_output=True, text=True)
+
+        dur = _duration_sec(prompt_wav)
+        if dur > 30.0:
+            tmp_dir = tempfile.mkdtemp()
+            trimmed = os.path.join(tmp_dir, "prompt_trimmed.wav")
+            print(f"[backend.chat_engine] 参考音频超过30s ({dur:.2f}s)，截断到30s后再用")
+            _trim_wav(prompt_wav, trimmed, 29.5)
+            prompt_wav = trimmed
+
         # 检查模型目录是否存在
         if not os.path.exists(model_dir):
             print(f"[backend.chat_engine] CosyVoice模型目录不存在: {model_dir}")
@@ -464,29 +517,27 @@ def text_to_speech_cosyvoice(text, prompt_wav, output_file, language='zh', model
             return None
         
         # 查找生成的音频文件
-        # test_cosyvoice.py 输出到 test_result/ 目录
-        output_dir = os.path.join(os.path.dirname(cosyvoice_script), 'test_result')
-        if not os.path.exists(output_dir):
-            output_dir = 'CosyVoice/test_result'
-        
-        # 查找生成的音频文件（可能带索引）
+        # test_cosyvoice.py 默认输出到 "test_result/"，有时是项目根目录下的 test_result，也可能是 CosyVoice/test_result
+        candidate_dirs = [
+            os.path.join(os.path.dirname(cosyvoice_script), 'test_result'),
+            'CosyVoice/test_result',
+            'test_result'
+        ]
         base_name = os.path.splitext(os.path.basename(output_file))[0]
         generated_files = []
-        if os.path.exists(output_dir):
-            for f in os.listdir(output_dir):
-                if f.startswith(base_name) and f.endswith('.wav'):
-                    generated_files.append(os.path.join(output_dir, f))
-        
+        for d in candidate_dirs:
+            if os.path.exists(d):
+                for f in os.listdir(d):
+                    if f.startswith(base_name) and f.endswith('.wav'):
+                        generated_files.append(os.path.join(d, f))
         if generated_files:
-            # 使用最新的文件
             latest_file = max(generated_files, key=lambda f: os.path.getctime(f))
-            # 复制到目标位置（固定名称，供后续流程使用）
+            os.makedirs(os.path.dirname(output_file), exist_ok=True)
             shutil.copy(latest_file, output_file)
             print(f"[backend.chat_engine] 语音克隆完成: {output_file}")
             return output_file
-        else:
-            print(f"[backend.chat_engine] 未找到生成的音频文件")
-            return None
+        print(f"[backend.chat_engine] 未找到生成的音频文件")
+        return None
             
     except Exception as e:
         print(f"[backend.chat_engine] 语音克隆错误: {e}")

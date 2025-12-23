@@ -864,8 +864,9 @@
                     <div id="preset_voice_group" class="sub-options" style="display: none; margin-top: 10px;">
                         <label>预设音色</label>
                         <select name="preset_voice_name" id="preset_voice_name">
-                            <option value="default">默认音色</option>
-                            <option value="cross_lingual">跨语言音色</option>
+                            <option value="default">默认音色（中文女声）</option>
+                            <option value="cross_lingual">跨语言音色（中文男声）</option>
+                            <option value="may_en">英文音色（may_short，女声）</option>
                         </select>
                     </div>
 
@@ -875,7 +876,9 @@
                         <input type="text"
                                name="custom_voice_path"
                                id="custom_voice_path"
-                               placeholder="请输入音频文件路径，例如：static/uploads/audios/may_reference.wav">
+                               placeholder="请输入音频文件路径，例如：static/uploads/audios/may_short.wav"
+                               list="custom_voice_history">
+                        <datalist id="custom_voice_history"></datalist>
                         <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 5px;">
                             请输入已上传的音频文件路径，支持 .wav, .mp3, .m4a, .flac 格式
                         </small>
@@ -891,7 +894,7 @@
                         <option value="en">English</option>
                     </select>
                     <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 5px;">
-                        选择 AI 回复的语音合成语言类型
+                        选择 AI 回复的语音合成语言类型；请让“参考音频语言”和“回复语言”保持一致，避免中英错配导致音色失真
                     </small>
                 </div>
 
