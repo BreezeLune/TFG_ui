@@ -647,6 +647,8 @@
             videoEl.play().catch(e => console.log('自动播放可能被阻止:', e));
         }
 
+        let trainingData = null; // 用于在finally中访问
+        
         fetch('/model_training', {
             method: 'POST',
             body: formData
@@ -658,7 +660,17 @@
                 return res.json();
             })
             .then(data => {
+                trainingData = data; // 保存数据
                 console.log("后端返回数据:", data);
+
+                // 如果训练已开始，开始轮询状态
+                if (data.status === 'started' && data.task_id) {
+                    updateVideoStatus('训练已开始，正在进行中...');
+                    showNotification('训练已开始，请稍候...', 'success');
+                    // 开始轮询训练状态
+                    pollTrainingStatus(data.task_id);
+                    return;
+                }
 
                 if (data.status === 'success') {
                     // 检查返回的是否是有效的模型路径
@@ -726,12 +738,111 @@
                 showNotification('训练失败，请检查网络连接或服务器状态', 'error');
             })
             .finally(() => {
-                // 隐藏加载动画
+                // 注意：异步训练时不要立即隐藏加载动画
+                // 只有在同步训练完成时才隐藏
+                if (trainingData && trainingData.status !== 'started') {
                 setTimeout(() => {
                     loadingOverlay.classList.remove('active');
                 }, 500);
+                }
             });
     });
+
+        // 轮询训练状态
+        function pollTrainingStatus(taskId) {
+            // TalkingGaussian训练包含三个阶段，每个阶段50k迭代，总计约110k迭代
+            // 训练时间取决于GPU性能：高端GPU(如A100)约2-4小时，中端GPU(如RTX 3090)约4-8小时，低端GPU可能需要8-12小时
+            // 设置最大轮询时间为24小时（17280次，每5秒一次），确保覆盖所有可能的训练时间
+            const maxAttempts = 17280; // 24小时 = 86400秒 / 5秒 = 17280次
+            let attempts = 0;
+            const pollInterval = 5000; // 每5秒轮询一次
+
+            // 格式化时间显示
+            function formatTime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                if (hours > 0) {
+                    return `${hours}小时${minutes}分钟${secs}秒`;
+                } else if (minutes > 0) {
+                    return `${minutes}分钟${secs}秒`;
+                } else {
+                    return `${secs}秒`;
+                }
+            }
+
+            const poll = () => {
+                const elapsedSeconds = Math.floor(attempts * pollInterval / 1000);
+                
+                // 只在超过24小时时才超时（实际训练可能更长，但至少给足够时间）
+                if (attempts >= maxAttempts) {
+                    updateVideoStatus('训练时间超过24小时，请检查服务器日志或手动查看训练状态', true);
+                    showNotification('训练时间较长，请检查服务器日志确认训练是否仍在进行', 'warning');
+                    // 不停止轮询，继续尝试获取状态（可能训练仍在进行）
+                    // 但降低轮询频率到每30秒一次
+                    setTimeout(poll, 30000);
+                    return;
+                }
+
+                fetch(`/training_status/${taskId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log("训练状态:", data);
+
+                        if (data.status === 'completed') {
+                            // 训练完成
+                            const videoEl = document.getElementById('trainVideo');
+                            videoEl.pause();
+                            videoEl.currentTime = 0;
+
+                            document.getElementById('model_path_output').value = data.model_path || '';
+                            document.getElementById('training_result').style.display = 'block';
+                            updateVideoStatus('训练完成！模型路径: ' + (data.model_path || '') + ` (总耗时: ${formatTime(elapsedSeconds)})`);
+                            showNotification('训练完成！', 'success');
+                            document.getElementById('loadingOverlay').classList.remove('active');
+                        } else if (data.status === 'error') {
+                            // 训练失败
+                            resetVideoDisplay();
+                            updateVideoStatus('训练失败: ' + (data.message || '未知错误'), true);
+                            showNotification('训练失败：' + (data.message || '未知错误'), 'error');
+                            document.getElementById('loadingOverlay').classList.remove('active');
+                        } else {
+                            // 训练进行中，继续轮询
+                            attempts++;
+                            
+                            // 根据训练时间显示不同的提示信息
+                            let statusMessage = `训练进行中... (已等待 ${formatTime(elapsedSeconds)})`;
+                            if (elapsedSeconds < 1800) { // 30分钟内
+                                statusMessage += '\n训练刚开始，请耐心等待';
+                            } else if (elapsedSeconds < 7200) { // 2小时内
+                                statusMessage += '\n训练正常进行中';
+                            } else if (elapsedSeconds < 14400) { // 4小时内
+                                statusMessage += '\n训练可能需要较长时间，请继续等待';
+                            } else { // 超过4小时
+                                statusMessage += '\n训练时间较长，这是正常的，请继续等待';
+                            }
+                            
+                            updateVideoStatus(statusMessage);
+                            setTimeout(poll, pollInterval);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('轮询错误:', err);
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            // 网络错误时，延长轮询间隔到10秒
+                            setTimeout(poll, 10000);
+                        } else {
+                            updateVideoStatus('无法获取训练状态，请检查服务器连接', true);
+                            showNotification('无法获取训练状态，请检查服务器连接', 'error');
+                            document.getElementById('loadingOverlay').classList.remove('active');
+                        }
+                    });
+            };
+
+            // 开始轮询
+            setTimeout(poll, pollInterval);
+        }
 
   
         // 通知提示函数  

@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 import os
+import threading
 from backend.video_generator import generate_video
 from backend.model_trainer import train_model
 from backend.chat_engine import chat_response
@@ -43,6 +44,24 @@ def video_generation():
     return render_template('video_generation.html')
 
 
+# 训练任务状态存储（简单实现，生产环境应使用Redis等）
+training_tasks = {}
+
+def train_model_async(data, task_id):
+    """异步执行训练任务"""
+    try:
+        model_path = train_model(data)
+        training_tasks[task_id] = {
+            'status': 'completed',
+            'model_path': model_path,
+            'message': f'训练完成，模型路径：{model_path}'
+        }
+    except Exception as e:
+        training_tasks[task_id] = {
+            'status': 'error',
+            'message': f'训练失败：{str(e)}'
+        }
+
 # 模型训练界面
 @app.route('/model_training', methods=['GET', 'POST'])
 def model_training():
@@ -55,16 +74,35 @@ def model_training():
             "custom_params": request.form.get('custom_params')
         }
 
-        model_path = train_model(data)
-        # model_path 是相对路径，如 "output/talking_May"
-        # 返回给前端，用于后续视频生成和对话系统
+        # 生成任务ID
+        import time
+        task_id = f"train_{int(time.time())}"
+        
+        # 启动异步训练任务
+        thread = threading.Thread(target=train_model_async, args=(data, task_id))
+        thread.daemon = True
+        thread.start()
+        
+        # 立即返回，告诉前端训练已开始
         return jsonify({
-            'status': 'success', 
-            'model_path': model_path,
-            'message': f'训练完成，模型路径：{model_path}'
+            'status': 'started',
+            'task_id': task_id,
+            'message': '训练已开始，请稍候...'
         })
 
     return render_template('model_training.html')
+
+# 训练状态查询接口
+@app.route('/training_status/<task_id>', methods=['GET'])
+def training_status(task_id):
+    """查询训练任务状态"""
+    if task_id in training_tasks:
+        return jsonify(training_tasks[task_id])
+    else:
+        return jsonify({
+            'status': 'running',
+            'message': '训练进行中...'
+        })
 
 
 # 实时对话系统界面
