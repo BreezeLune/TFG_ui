@@ -418,6 +418,38 @@ def text_to_speech_cosyvoice(text, prompt_wav, output_file, language='zh', model
         prompt_wav = os.path.abspath(prompt_wav)
         output_file = os.path.abspath(output_file)
 
+        # 如果参考音频超过 30s，先截断到 30s（CosyVoice 限制）
+        def _duration_sec(wav_path: str) -> float:
+            try:
+                r = subprocess.run(
+                    ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", wav_path],
+                    capture_output=True, text=True, check=True
+                )
+                return float(r.stdout.strip())
+            except Exception:
+                return 0.0
+
+        def _trim_wav(src, dst, max_sec=30):
+            # 强制重采样 16k 单声道并截断，避免元数据导致时长 >30s
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", src,
+                "-t", str(max_sec),
+                "-ar", "16000",
+                "-ac", "1",
+                "-c:a", "pcm_s16le",
+                dst
+            ]
+            subprocess.run(cmd, capture_output=True, text=True)
+
+        dur = _duration_sec(prompt_wav)
+        if dur > 30.0:
+            tmp_dir = tempfile.mkdtemp()
+            trimmed = os.path.join(tmp_dir, "prompt_trimmed.wav")
+            print(f"[backend.chat_engine] 参考音频超过30s ({dur:.2f}s)，截断到30s后再用")
+            _trim_wav(prompt_wav, trimmed, 29.5)
+            prompt_wav = trimmed
+
         # 检查模型目录是否存在
         if not os.path.exists(model_dir):
             print(f"[backend.chat_engine] CosyVoice模型目录不存在: {model_dir}")
