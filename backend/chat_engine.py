@@ -128,7 +128,16 @@ def chat_response(data):
         # model = "glm-4-plus"
         # reply_text = get_ai_response(input_text, output_text, api_key, model)
         api_choice = data.get('api_choice', 'zhipu')
-        reply_text = query_llm(recognized_text, api_choice)
+        cosyvoice_params = data.get('cosyvoice_params', {})
+        language = cosyvoice_params.get('language', 'zh')
+
+        # 根据 language 为 LLM 添加语言指令
+        if language == 'en':
+            llm_input = f"Please answer in English: {recognized_text}"
+        else:
+            llm_input = f"请用中文回答：{recognized_text}"
+
+        reply_text = query_llm(llm_input, api_choice)
         # 将回复保存到文件（保持原有逻辑的副作用）
         with open(output_text, 'w', encoding='utf-8') as f:
             f.write(reply_text)
