@@ -130,12 +130,36 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
             au_exp.append(au_exp_t[:, None])
         au_exp = np.concatenate(au_exp, axis=-1, dtype=np.float32)
 
+        # 保存原始训练数据的帧数
+        original_num_frames = len(frames)
+        
+        # 当使用新音频文件时，根据音频特征帧数扩展 frames（镜像循环，避免僵尸定格）
+        if audio_file != '' and auds.shape[0] > len(frames):
+            print(f"[INFO] 扩展 frames: 音频({auds.shape[0]}) > 视频({len(frames)})，使用镜像循环策略")
+            # 镜像循环索引：0,1,...,N-1,N-2,...,1
+            cycle_ids = list(range(original_num_frames)) + list(range(original_num_frames - 2, 0, -1))
+            num_extra_frames = auds.shape[0] - len(frames)
+            for i in range(num_extra_frames):
+                seq_idx = (original_num_frames + i) % len(cycle_ids)
+                source_idx = cycle_ids[seq_idx]
+                new_frame = frames[source_idx].copy()
+                # 复用已有帧的 img_id，保证后续读 ori_imgs / gt_imgs 等文件一定存在
+                new_frame['img_id'] = frames[source_idx]['img_id']
+                frames.append(new_frame)
+            print(f"[INFO] 已扩展 frames 至 {len(frames)} 帧（镜像循环）")
+
         ldmks_lips = []
         ldmks_mouth = []
         ldmks_lhalf = []
         
         for idx, frame in tqdm(enumerate(frames)):
-            lms = np.loadtxt(os.path.join(path, 'ori_imgs', str(frame['img_id']) + '.lms')) # [68, 2]
+            img_id = frame['img_id']
+            lms_path = os.path.join(path, 'ori_imgs', str(img_id) + '.lms')
+            if not os.path.exists(lms_path):
+                # 兜底：使用最后一帧的标注，避免缺失
+                img_id = frames[-1]['img_id']
+                lms_path = os.path.join(path, 'ori_imgs', str(img_id) + '.lms')
+            lms = np.loadtxt(lms_path) # [68, 2]
             lips = slice(48, 60)
             mouth = slice(60, 68)
             xmin, xmax = int(lms[lips, 1].min()), int(lms[lips, 1].max())
@@ -159,7 +183,8 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
 
 
         for idx, frame in tqdm(enumerate(frames)):
-            cam_name = os.path.join(path, 'gt_imgs', str(frame["img_id"]) + extension)
+            img_id = frame['img_id']
+            cam_name = os.path.join(path, 'gt_imgs', str(img_id) + extension)
 
             # NeRF 'transform_matrix' is a camera-to-world transform
             c2w = np.array(frame["transform_matrix"])
@@ -180,7 +205,7 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
             else:
                 image = None
 
-            torso_img_path = os.path.join(path, 'torso_imgs', str(frame['img_id']) + '.png')
+            torso_img_path = os.path.join(path, 'torso_imgs', str(img_id) + '.png')
             if preload:
                 torso_img = np.array(Image.open(torso_img_path).convert("RGBA")) * 1.0
                 bg = torso_img[..., :3] * torso_img[..., 3:] / 255.0 + bg_img * (1 - torso_img[..., 3:] / 255.0)
@@ -191,13 +216,13 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
             # bg = np.array([1,1,1]) if white_background else np.array([0, 0, 0])
 
             talking_dict = {}
-            talking_dict['img_id'] = frame['img_id']
+            talking_dict['img_id'] = idx  # 使用渲染顺序的 idx 保持连续
 
             if preload:
-                teeth_mask_path = os.path.join(path, 'teeth_mask', str(frame['img_id']) + '.npy')
+                teeth_mask_path = os.path.join(path, 'teeth_mask', str(img_id) + '.npy')
                 teeth_mask = np.load(teeth_mask_path)
 
-                mask_path = os.path.join(path, 'parsing', str(frame['img_id']) + '.png')
+                mask_path = os.path.join(path, 'parsing', str(img_id) + '.png')
                 mask = np.array(Image.open(mask_path).convert("RGB")) * 1.0
                 talking_dict['face_mask'] = (mask[:, :, 2] > 254) * (mask[:, :, 0] == 0) * (mask[:, :, 1] == 0) ^ teeth_mask
                 talking_dict['hair_mask'] = (mask[:, :, 0] < 1) * (mask[:, :, 1] < 1) * (mask[:, :, 2] < 1)
@@ -215,10 +240,11 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
                 if idx >= auds.shape[0]:
                     break
 
+            # 直接按循环后的 frame['img_id'] 取 AU，保证表情/眨眼也循环
+            blink_val = np.clip(au_blink[frame['img_id']], 0, 2) / 2
+            talking_dict['blink'] = torch.as_tensor(blink_val)
 
-            talking_dict['blink'] = torch.as_tensor(np.clip(au_blink[frame['img_id']], 0, 2) / 2)
             talking_dict['au25'] = [au25[frame['img_id']], au25_25, au25_50, au25_75, au25_100]
-
             talking_dict['au_exp'] = torch.as_tensor(au_exp[frame['img_id']])
 
 
@@ -233,10 +259,12 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
             ymin = cy - l
             ymax = cy + l
 
+            # 使用当前 idx 对应的 landmarks（已随扩展计算），保证循环后的几何一致
+            ldmk_idx = min(idx, len(ldmks_lhalf) - 1)
             talking_dict['lips_rect'] = [xmin, xmax, ymin, ymax]
-            talking_dict['lhalf_rect'] = ldmks_lhalf[idx]
-            talking_dict['mouth_bound'] = [mouth_lb, mouth_ub, ldmks_mouth[idx, 1] - ldmks_mouth[idx, 0]]
-            talking_dict['img_id'] = frame['img_id']
+            talking_dict['lhalf_rect'] = ldmks_lhalf[ldmk_idx]
+            talking_dict['mouth_bound'] = [mouth_lb, mouth_ub, ldmks_mouth[ldmk_idx, 1] - ldmks_mouth[ldmk_idx, 0]]
+            talking_dict['img_id'] = idx  # 使用 idx 确保连续
 
 
             # norm_data = im_data / 255.0

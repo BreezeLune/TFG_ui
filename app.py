@@ -230,6 +230,45 @@ def upload_voice_clone():
     })
 
 
+@app.route('/upload_au', methods=['POST'])
+def upload_au():
+    """
+    上传 AU 特征文件（au.csv）
+    用途：当已在本地/其它环境生成 au.csv 时，直接上传到 TalkingGaussian/data/<ID>/ 目录。
+    请求字段：
+      - project_id: 必填，训练数据的 ID（对应目录名，如 May）
+      - au_file: 必填，au.csv 文件
+    """
+    project_id = request.form.get('project_id')
+    if not project_id:
+        return jsonify({'status': 'error', 'message': '缺少 project_id'})
+
+    if 'au_file' not in request.files:
+        return jsonify({'status': 'error', 'message': '没有上传文件字段 au_file'})
+
+    au_file = request.files['au_file']
+    if au_file.filename == '':
+        return jsonify({'status': 'error', 'message': '没有选择文件'})
+
+    # 仅允许 .csv
+    if not au_file.filename.lower().endswith('.csv'):
+        return jsonify({'status': 'error', 'message': '仅支持 .csv 文件'})
+
+    # 目标路径：TalkingGaussian/data/<ID>/au.csv
+    target_dir = os.path.join('TalkingGaussian', 'data', project_id)
+    os.makedirs(target_dir, exist_ok=True)
+    target_path = os.path.join(target_dir, 'au.csv')
+
+    au_file.save(target_path)
+
+    return jsonify({
+        'status': 'success',
+        'message': f'AU 文件已上传到 {target_path}',
+        'project_id': project_id,
+        'path': target_path.replace('\\', '/')
+    })
+
+
 if __name__ == '__main__':
     # host='0.0.0.0' 允许从外部访问（华为云服务器需要）
     # debug=True 开发模式，生产环境应设置为False
