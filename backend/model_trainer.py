@@ -3,9 +3,21 @@ import os
 import time
 import shutil
 
+def _resp(status, model_path=None, message=""):
+    return {
+        "status": status,
+        "model_path": model_path,
+        "message": message
+    }
+
 def train_model(data):
     """
-    模拟模型训练逻辑。
+    模型训练逻辑，统一返回:
+    {
+        'status': 'success' | 'error',
+        'model_path': str | None,
+        'message': str
+    }
     """
     print("[backend.model_trainer] 收到数据：")
     for k, v in data.items():
@@ -79,7 +91,7 @@ def train_model(data):
                 
                 if preprocess_result.returncode != 0:
                     print(f"[backend.model_trainer] 预处理失败: {preprocess_result.stderr}")
-                    return video_path
+                    return _resp("error", None, f"预处理失败: {preprocess_result.stderr}")
                 
                 print("[backend.model_trainer] 数据预处理完成")
             
@@ -138,19 +150,19 @@ def train_model(data):
                     # 如果相对路径计算失败，使用简单方法
                     relative_workspace = workspace.replace('TalkingGaussian/', '').lstrip('/')
                 print(f"[backend.model_trainer] 返回相对路径: {relative_workspace}")
-                return relative_workspace
+                return _resp("success", relative_workspace, "训练完成")
             else:
                 print(f"[backend.model_trainer] 训练失败，退出码: {result.returncode}")
-                return video_path
+                return _resp("error", None, f"训练失败，退出码: {result.returncode}")
                 
         except FileNotFoundError:
             print("[backend.model_trainer] 错误: 找不到训练脚本")
-            return video_path
+            return _resp("error", None, "找不到训练脚本")
         except Exception as e:
             print(f"[backend.model_trainer] 训练过程中发生未知错误: {e}")
             import traceback
             traceback.print_exc()
-            return video_path
+            return _resp("error", None, f"未知错误: {e}")
     
     elif data['model_choice'] == "SyncTalk":
         try:
@@ -178,13 +190,13 @@ def train_model(data):
         except subprocess.CalledProcessError as e:
             print(f"[backend.model_trainer] 训练失败，退出码: {e.returncode}")
             print(f"错误输出: {e.stderr}")
-            return video_path
+            return _resp("error", None, f"训练失败: {e.stderr}")
         except FileNotFoundError:
             print("[backend.model_trainer] 错误: 找不到训练脚本")
-            return video_path
+            return _resp("error", None, "找不到训练脚本")
         except Exception as e:
             print(f"[backend.model_trainer] 训练过程中发生未知错误: {e}")
-            return video_path
+            return _resp("error", None, f"未知错误: {e}")
 
     print("[backend.model_trainer] 训练完成")
-    return video_path
+    return _resp("success", None, "训练完成")

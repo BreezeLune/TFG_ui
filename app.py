@@ -50,12 +50,20 @@ training_tasks = {}
 def train_model_async(data, task_id):
     """异步执行训练任务"""
     try:
-        model_path = train_model(data)
-        training_tasks[task_id] = {
-            'status': 'completed',
-            'model_path': model_path,
-            'message': f'训练完成，模型路径：{model_path}'
-        }
+        result = train_model(data)
+        if isinstance(result, dict):
+            training_tasks[task_id] = {
+                'status': result.get('status', 'error'),
+                'model_path': result.get('model_path'),
+                'message': result.get('message', '')
+            }
+        else:
+            # 兼容旧返回：只返回路径则认为成功
+            training_tasks[task_id] = {
+                'status': 'success',
+                'model_path': result,
+                'message': f'训练完成，模型路径：{result}'
+            }
     except Exception as e:
         training_tasks[task_id] = {
             'status': 'error',
