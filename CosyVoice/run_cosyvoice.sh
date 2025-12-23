@@ -52,8 +52,10 @@ if [ -n "$SPEED" ]; then
 fi
 
 # Use conda run to switch to cosyvoice environment
+# 注意：run_cosyvoice.sh 是在项目根目录下通过 `bash ./CosyVoice/run_cosyvoice.sh` 调用，
+# 所以这里需要显式加上 CosyVoice 子目录，否则会在 `/root/TFG_ui` 下找不到脚本。
 conda run -n cosyvoice --no-capture-output \
-    python test_cosyvoice.py "${CMD_ARGS[@]}"
+    python ./CosyVoice/test_cosyvoice.py "${CMD_ARGS[@]}"
 
 echo "OK: CosyVoice synthesis completed"
 
