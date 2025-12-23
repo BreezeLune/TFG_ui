@@ -429,7 +429,7 @@
 
         /* 加载状态 */
         .loading-overlay {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -442,10 +442,11 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
+            border-radius: 15px; /* 与视频区域圆角一致 */
         }
 
         .loading-overlay.active {
-            opacity: 1;
+            opacity: 0.9;
             pointer-events: all;
         }
 
@@ -490,15 +491,22 @@
 
     <div class="video-page-container">
         <!-- 左侧：训练结果视频 -->
-        <div class="video-display">
-            <video id="trainVideo" controls>
-                <source src="{{ url_for('static', filename='videos/sample.mp4') }}" type="video/mp4">
-                您的浏览器不支持 video 标签。
-            </video>
-            <div id="videoStatus" style="text-align: center; color: var(--accent-color); font-size: 14px; margin-top: 10px;">
-                准备训练模型
-            </div>
+      <!-- 左侧：训练结果视频 -->
+<div class="video-display">
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div id="loadingText" style="position: absolute; top: 60%; color: var(--accent-color); font-size: 14px; text-align: center; width: 100%;">
+            训练中...
         </div>
+    </div>
+    <video id="trainVideo" controls>
+        <source src="{{ url_for('static', filename='videos/sample.mp4') }}" type="video/mp4">
+        您的浏览器不支持 video 标签。
+    </video>
+    <div id="videoStatus" style="text-align: center; color: var(--accent-color); font-size: 14px; margin-top: 10px;">
+        准备训练模型
+    </div>
+</div>
 
         <!-- 右侧：输入框 -->
         <div class="form-section">
@@ -524,18 +532,11 @@
                                onfocus="showHistorySuggestions()"
                                list="au_history_list">
                         <div id="au_file_error" class="error-message">请输入AU文件路径</div>
-<!--                        <div id="au_history_suggestions" class="history-suggestions">  -->
-<!--                            <div class="history-header">  -->
-<!--                                <span>历史记录</span>  -->
-<!--                                <span class="clear-history" onclick="clearAuHistory()">清除</span>  -->
-<!--                            </div>  -->
-<!--                            <div id="au_history_items"></div>  -->
-<!--                        </div>  -->
                     </div>
                     <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 5px;">
-                        • <strong>必填</strong>，请提供通过OpenFace生成的AU文件<br>
+                        • <strong></strong>请提供通过OpenFace生成的AU文件<br>
                         • 格式：au.csv 文件路径，例如：TalkingGaussian/data/May/au.csv<br>
-                        • 或使用AU上传接口：<code>POST /upload_au</code>（project_id=May，au_file=au.csv）
+
                     </small>
                 </div>
 
@@ -593,313 +594,430 @@
         </div>
     </div>
 
-    <script>
-        // AU文件历史记录功能
-        const AU_HISTORY_KEY = 'au_file_history';
-        const MAX_HISTORY_ITEMS = 10;
+ <script>
+    // AU文件历史记录功能
+    const AU_HISTORY_KEY = 'au_file_history';
+    const MAX_HISTORY_ITEMS = 10;
 
-        // 获取AU历史记录
-        function getAuHistory() {
-            const history = localStorage.getItem(AU_HISTORY_KEY);
-            return history ? JSON.parse(history) : [];
+    // 获取AU历史记录
+    function getAuHistory() {
+        const history = localStorage.getItem(AU_HISTORY_KEY);
+        return history ? JSON.parse(history) : [];
+    }
+
+    // 保存AU历史记录
+    function saveAuHistory(history) {
+        localStorage.setItem(AU_HISTORY_KEY, JSON.stringify(history));
+    }
+
+    // 添加AU历史记录
+    function addAuHistory(path) {
+        if (!path || path.trim() === '') return;
+
+        const history = getAuHistory();
+        // 移除已存在的相同路径
+        const filteredHistory = history.filter(item => item !== path);
+        // 添加到开头
+        filteredHistory.unshift(path);
+        // 限制数量
+        const limitedHistory = filteredHistory.slice(0, MAX_HISTORY_ITEMS);
+        saveAuHistory(limitedHistory);
+        renderAuHistory();
+    }
+
+    // 渲染AU历史记录
+    function renderAuHistory() {
+        const history = getAuHistory();
+        const container = document.getElementById('au_history_items');
+
+        if (!container) return;
+
+        if (history.length === 0) {
+            container.innerHTML = '<div class="history-item" style="color: var(--text-secondary); text-align: center;">暂无历史记录</div>';
+            return;
         }
 
-        // 保存AU历史记录
-        function saveAuHistory(history) {
-            localStorage.setItem(AU_HISTORY_KEY, JSON.stringify(history));
+        container.innerHTML = history.map(path =>
+            `<div class="history-item" onclick="selectAuPath('${path.replace(/'/g, "\\'")}')">
+                ${path}
+            </div>`
+        ).join('');
+    }
+
+    // 选择AU路径
+    function selectAuPath(path) {
+        const input = document.getElementById('au_file');
+        if (input) {
+            input.value = path;
+            clearInputError('au_file');
+            // 触发输入事件以保存到历史记录
+            const event = new Event('input', { bubbles: true });
+            input.dispatchEvent(event);
         }
+        hideHistorySuggestions();
+    }
 
-        // 添加AU历史记录
-        function addAuHistory(path) {
-            if (!path || path.trim() === '') return;
+    // 清除AU历史记录
+    function clearAuHistory() {
+        if (confirm('确定要清除AU文件历史记录吗？')) {
+            localStorage.removeItem(AU_HISTORY_KEY);
+            renderAuHistory();
+            showNotification('历史记录已清除', 'success');
+        }
+    }
 
-            const history = getAuHistory();
-            // 移除已存在的相同路径
-            const filteredHistory = history.filter(item => item !== path);
-            // 添加到开头
-            filteredHistory.unshift(path);
-            // 限制数量
-            const limitedHistory = filteredHistory.slice(0, MAX_HISTORY_ITEMS);
-            saveAuHistory(limitedHistory);
+    // 显示历史建议
+    function showHistorySuggestions() {
+        const suggestions = document.getElementById('au_history_suggestions');
+        if (suggestions) {
+            suggestions.classList.add('show');
             renderAuHistory();
         }
+    }
 
-        // 渲染AU历史记录
-        function renderAuHistory() {
-            const history = getAuHistory();
-            const container = document.getElementById('au_history_items');
-
-            if (!container) return;
-
-            if (history.length === 0) {
-                container.innerHTML = '<div class="history-item" style="color: var(--text-secondary); text-align: center;">暂无历史记录</div>';
-                return;
-            }
-
-            container.innerHTML = history.map(path =>
-                `<div class="history-item" onclick="selectAuPath('${path.replace(/'/g, "\\'")}')">
-                    ${path}
-                </div>`
-            ).join('');
-        }
-
-        // 选择AU路径
-        function selectAuPath(path) {
-            const input = document.getElementById('au_file');
-            if (input) {
-                input.value = path;
-                clearInputError('au_file');
-                // 触发输入事件以保存到历史记录
-                const event = new Event('input', { bubbles: true });
-                input.dispatchEvent(event);
-            }
-            hideHistorySuggestions();
-        }
-
-        // 清除AU历史记录
-        function clearAuHistory() {
-            if (confirm('确定要清除AU文件历史记录吗？')) {
-                localStorage.removeItem(AU_HISTORY_KEY);
-                renderAuHistory();
-                showNotification('历史记录已清除', 'success');
-            }
-        }
-
-        // 显示历史建议
-        function showHistorySuggestions() {
+    // 隐藏历史建议
+    function hideHistorySuggestions() {
+        setTimeout(() => {
             const suggestions = document.getElementById('au_history_suggestions');
             if (suggestions) {
-                suggestions.classList.add('show');
-                renderAuHistory();
+                suggestions.classList.remove('show');
             }
-        }
+        }, 200);
+    }
 
-        // 隐藏历史建议
-        function hideHistorySuggestions() {
-            setTimeout(() => {
-                const suggestions = document.getElementById('au_history_suggestions');
-                if (suggestions) {
-                    suggestions.classList.remove('show');
-                }
-            }, 200);
-        }
-
-        // 处理表单中的AU文件输入
-        function handleAuFileInput() {
-            const auInput = document.getElementById('au_file');
-            if (auInput) {
-                // 监听输入事件，保存历史记录
-                auInput.addEventListener('input', function(e) {
-                    const value = this.value.trim();
-                    if (value && value.length > 0) {
-                        clearInputError('au_file');
-                    }
-                });
-
-                // 监听焦点事件
-                auInput.addEventListener('focus', showHistorySuggestions);
-                auInput.addEventListener('blur', function() {
-                    setTimeout(hideHistorySuggestions, 200);
-                });
-
-                // 监听点击事件，防止点击历史项时立即隐藏
-                auInput.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    showHistorySuggestions();
-                });
-            }
-
-            // 点击页面其他地方隐藏历史记录
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.history-dropdown')) {
-                    hideHistorySuggestions();
+    // 处理表单中的AU文件输入
+    function handleAuFileInput() {
+        const auInput = document.getElementById('au_file');
+        if (auInput) {
+            // 监听输入事件，保存历史记录
+            auInput.addEventListener('input', function(e) {
+                const value = this.value.trim();
+                if (value && value.length > 0) {
+                    clearInputError('au_file');
                 }
             });
 
-            // 监听历史记录项的鼠标事件
-            document.addEventListener('mousedown', function(e) {
-                if (e.target.closest('.history-item')) {
-                    // 阻止输入框的blur事件
-                    e.preventDefault();
+            // 监听焦点事件
+            auInput.addEventListener('focus', showHistorySuggestions);
+            auInput.addEventListener('blur', function() {
+                setTimeout(hideHistorySuggestions, 200);
+            });
+
+            // 监听点击事件，防止点击历史项时立即隐藏
+            auInput.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showHistorySuggestions();
+            });
+        }
+
+        // 点击页面其他地方隐藏历史记录
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.history-dropdown')) {
+                hideHistorySuggestions();
+            }
+        });
+
+        // 监听历史记录项的鼠标事件
+        document.addEventListener('mousedown', function(e) {
+            if (e.target.closest('.history-item')) {
+                // 阻止输入框的blur事件
+                e.preventDefault();
+            }
+        });
+    }
+
+    // 返回首页函数
+    function goHome() {
+        // 显示加载动画
+        showLoadingOverlay('正在返回首页...');
+
+        // 清除可能的缓存问题
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
                 }
             });
         }
 
-        // 返回首页函数
-        function goHome() {
-            // 显示加载动画
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.classList.add('active');
+        // 强制刷新首页
+        setTimeout(() => {
+            window.location.href = '/?t=' + new Date().getTime();
+        }, 300);
+    }
 
-            // 清除可能的缓存问题
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for(let registration of registrations) {
-                        registration.unregister();
-                    }
-                });
-            }
+    // EPOCH字段显示/隐藏控制
+    function toggleEpochField() {
+        const modelChoice = document.getElementById('model_choice').value;
+        const epochGroup = document.getElementById('epoch_group');
 
-            // 强制刷新首页
-            setTimeout(() => {
-                window.location.href = '/?t=' + new Date().getTime();
-            }, 300);
+        if (modelChoice === 'SyncTalk') {
+            epochGroup.style.display = 'block';
+        } else {
+            epochGroup.style.display = 'none';
+        }
+    }
+
+    // 复制模型路径
+    function copyModelPath() {
+        const modelPathInput = document.getElementById('model_path_output');
+        modelPathInput.select();
+        document.execCommand('copy');
+        showNotification('模型路径已复制到剪贴板', 'success');
+    }
+
+    // 更新视频状态显示
+    function updateVideoStatus(status, isError = false) {
+        const statusEl = document.getElementById('videoStatus');
+        if (statusEl) {
+            statusEl.textContent = status;
+            statusEl.style.color = isError ? '#ff4757' : 'var(--accent-color)';
+        }
+    }
+
+    // 重置视频显示
+    function resetVideoDisplay() {
+        const videoEl = document.getElementById('trainVideo');
+        const statusEl = document.getElementById('videoStatus');
+
+        // 隐藏加载动画
+        hideLoadingOverlay();
+
+        // 重置视频源到默认
+        const defaultSrc = "{{ url_for('static', filename='videos/sample.mp4') }}";
+        videoEl.src = defaultSrc + '?t=' + new Date().getTime();
+        videoEl.load();
+
+        // 重置状态显示
+        if (statusEl) {
+            statusEl.textContent = '准备训练模型';
+            statusEl.style.color = 'var(--accent-color)';
+        }
+    }
+
+    // 显示加载动画
+    function showLoadingOverlay(message = '训练中...') {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        if (loadingText) {
+            loadingText.textContent = message;
+        }
+        loadingOverlay.classList.add('active');
+    }
+
+    // 隐藏加载动画
+    function hideLoadingOverlay() {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        loadingOverlay.classList.remove('active');
+    }
+
+    // 显示表单错误
+    function showInputError(inputId, message) {
+        const input = document.getElementById(inputId);
+        const errorDiv = document.getElementById(inputId + '_error');
+
+        if (input && errorDiv) {
+            input.classList.add('error-input');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    // 清除表单错误
+    function clearInputError(inputId) {
+        const input = document.getElementById(inputId);
+        const errorDiv = document.getElementById(inputId + '_error');
+
+        if (input && errorDiv) {
+            input.classList.remove('error-input');
+            errorDiv.style.display = 'none';
+        }
+    }
+
+    // 表单验证
+    function validateForm() {
+        let isValid = true;
+
+        // 验证AU文件地址（必填）
+        const auInput = document.getElementById('au_file');
+        const auValue = auInput.value.trim();
+
+        if (!auValue) {
+            showInputError('au_file', '请输入AU文件路径');
+            isValid = false;
+        } else {
+            clearInputError('au_file');
         }
 
-        // EPOCH字段显示/隐藏控制
-        function toggleEpochField() {
-            const modelChoice = document.getElementById('model_choice').value;
-            const epochGroup = document.getElementById('epoch_group');
+        // 验证参考视频地址
+        const refVideoInput = document.getElementById('ref_video');
+        const refVideoValue = refVideoInput.value.trim();
 
-            if (modelChoice === 'SyncTalk') {
-                epochGroup.style.display = 'block';
+        if (!refVideoValue) {
+            showInputError('ref_video', '请输入参考视频/图像地址');
+            isValid = false;
+        } else {
+            clearInputError('ref_video');
+        }
+
+        // 如果选择SyncTalk，验证epoch
+        const modelChoice = document.getElementById('model_choice').value;
+        if (modelChoice === 'SyncTalk') {
+            const epochInput = document.getElementById('epoch');
+            const epochValue = parseInt(epochInput.value);
+
+            if (isNaN(epochValue) || epochValue < 1) {
+                showInputError('epoch', '请输入有效的训练轮数（大于0）');
+                isValid = false;
             } else {
-                epochGroup.style.display = 'none';
+                clearInputError('epoch');
             }
         }
 
-        // 复制模型路径
-        function copyModelPath() {
-            const modelPathInput = document.getElementById('model_path_output');
-            modelPathInput.select();
-            document.execCommand('copy');
-            showNotification('模型路径已复制到剪贴板', 'success');
+        return isValid;
+    }
+
+    document.getElementById('trainForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        // 验证表单
+        if (!validateForm()) {
+            showNotification('请填写所有必填字段', 'error');
+            return;
         }
 
-        // 更新视频状态显示
-        function updateVideoStatus(status, isError = false) {
-            const statusEl = document.getElementById('videoStatus');
-            if (statusEl) {
-                statusEl.textContent = status;
-                statusEl.style.color = isError ? '#ff4757' : 'var(--accent-color)';
-            }
+        // 保存AU文件历史记录
+        const auInput = document.getElementById('au_file');
+        if (auInput && auInput.value.trim()) {
+            addAuHistory(auInput.value.trim());
         }
 
-        // 重置视频显示
-        function resetVideoDisplay() {
-            const videoEl = document.getElementById('trainVideo');
-            const statusEl = document.getElementById('videoStatus');
+        const formData = new FormData(this);
 
-            // 重置视频源到默认
-            const defaultSrc = "{{ url_for('static', filename='videos/sample.mp4') }}";
-            videoEl.src = defaultSrc + '?t=' + new Date().getTime();
+        // 显示加载动画（在视频区域显示）
+        showLoadingOverlay('正在启动训练...');
+
+        // 更新状态
+        updateVideoStatus('正在训练模型...');
+
+        // 立即从表单获取视频路径并播放
+        const refVideoPath = formData.get('ref_video');
+        const videoEl = document.getElementById('trainVideo');
+
+        if (refVideoPath) {
+            // 立即设置视频源并播放
+            const newSrc = "/" + refVideoPath.replace("\\", "/") + '?t=' + new Date().getTime();
+            videoEl.src = newSrc;
             videoEl.load();
-
-            // 重置状态显示
-            if (statusEl) {
-                statusEl.textContent = '准备训练模型';
-                statusEl.style.color = 'var(--accent-color)';
-            }
+            videoEl.play().catch(e => console.log('自动播放可能被阻止:', e));
         }
 
-        // 显示表单错误
-        function showInputError(inputId, message) {
-            const input = document.getElementById(inputId);
-            const errorDiv = document.getElementById(inputId + '_error');
+        let trainingData = null; // 用于在finally中访问
 
-            if (input && errorDiv) {
-                input.classList.add('error-input');
-                errorDiv.textContent = message;
-                errorDiv.style.display = 'block';
-            }
-        }
-
-        // 清除表单错误
-        function clearInputError(inputId) {
-            const input = document.getElementById(inputId);
-            const errorDiv = document.getElementById(inputId + '_error');
-
-            if (input && errorDiv) {
-                input.classList.remove('error-input');
-                errorDiv.style.display = 'none';
-            }
-        }
-
-        // 表单验证
-        function validateForm() {
-            let isValid = true;
-
-            // 验证AU文件地址（必填）
-            const auInput = document.getElementById('au_file');
-            const auValue = auInput.value.trim();
-
-            if (!auValue) {
-                showInputError('au_file', '请输入AU文件路径');
-                isValid = false;
-            } else {
-                clearInputError('au_file');
-            }
-
-            // 验证参考视频地址
-            const refVideoInput = document.getElementById('ref_video');
-            const refVideoValue = refVideoInput.value.trim();
-
-            if (!refVideoValue) {
-                showInputError('ref_video', '请输入参考视频/图像地址');
-                isValid = false;
-            } else {
-                clearInputError('ref_video');
-            }
-
-            // 如果选择SyncTalk，验证epoch
-            const modelChoice = document.getElementById('model_choice').value;
-            if (modelChoice === 'SyncTalk') {
-                const epochInput = document.getElementById('epoch');
-                const epochValue = parseInt(epochInput.value);
-
-                if (isNaN(epochValue) || epochValue < 1) {
-                    showInputError('epoch', '请输入有效的训练轮数（大于0）');
-                    isValid = false;
-                } else {
-                    clearInputError('epoch');
+        fetch('/model_training', {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP错误: ${res.status}`);
                 }
-            }
+                return res.json();
+            })
+            .then(data => {
+                trainingData = data; // 保存数据
+                console.log("后端返回数据:", data);
 
-            return isValid;
+                // 如果训练已开始，开始轮询状态
+                if (data.status === 'started' && data.task_id) {
+                    showLoadingOverlay('训练已开始，正在进行中...');
+                    updateVideoStatus('训练已开始，正在进行中...');
+                    showNotification('训练已开始，请稍候...', 'success');
+                    // 开始轮询训练状态
+                    pollTrainingStatus(data.task_id);
+                    return;
+                }
+
+                // 如果是同步训练（直接返回结果）
+                if (data.status === 'success') {
+                    // 训练成功：停止播放视频，显示训练完成画面
+                    hideLoadingOverlay(); // 隐藏加载动画
+                    const videoEl = document.getElementById('trainVideo');
+                    videoEl.pause();
+                    videoEl.currentTime = 0;
+
+                    // 设置模型路径
+                    const modelPath = data.model_path || '';
+                    document.getElementById('model_path_output').value = modelPath;
+                    document.getElementById('training_result').style.display = 'block';
+                    updateVideoStatus('训练完成！模型路径: ' + modelPath);
+                    showNotification('训练完成！', 'success');
+
+                } else if (data.status === 'error') {
+                    // 后端明确返回错误
+                    hideLoadingOverlay(); // 隐藏加载动画
+                    resetVideoDisplay();
+                    let errorMsg = '处理失败'|| '未知错误';
+                    updateVideoStatus('训练失败: ' + errorMsg, true);
+                    showNotification('训练失败：' + errorMsg, 'error');
+                } else {
+                    // 没有status字段或其他情况
+                    hideLoadingOverlay(); // 隐藏加载动画
+                    resetVideoDisplay();
+                    let errorMsg = '处理失败' || '服务器返回数据格式异常';
+                    updateVideoStatus('训练失败：' + errorMsg, true);
+                    showNotification('训练失败：' + errorMsg, 'error');
+                }
+            })
+            .catch(err => {
+                console.error('请求错误:', err);
+                hideLoadingOverlay(); // 隐藏加载动画
+                resetVideoDisplay();
+                updateVideoStatus('请求错误：' + err.message, true);
+                showNotification('训练失败，请检查网络连接或服务器状态', 'error');
+            })
+            .finally(() => {
+                // 只有在同步训练完成或任务ID不存在时才隐藏加载动画
+                if (!trainingData || (trainingData.status !== 'started' && !trainingData.task_id)) {
+                    setTimeout(() => {
+                        hideLoadingOverlay();
+                    }, 500);
+                }
+            });
+    });
+
+    // 轮询训练状态
+    function pollTrainingStatus(taskId) {
+        const maxAttempts = 17280; // 24小时 = 86400秒 / 5秒 = 17280次
+        let attempts = 0;
+        const pollInterval = 5000; // 每5秒轮询一次
+
+        // 格式化时间显示
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            if (hours > 0) {
+                return `${hours}小时${minutes}分钟${secs}秒`;
+            } else if (minutes > 0) {
+                return `${minutes}分钟${secs}秒`;
+            } else {
+                return `${secs}秒`;
+            }
         }
 
-        document.getElementById('trainForm').addEventListener('submit', function (e) {
-            e.preventDefault();
+        const poll = () => {
+            const elapsedSeconds = Math.floor(attempts * pollInterval / 1000);
 
-            // 验证表单
-            if (!validateForm()) {
-                showNotification('请填写所有必填字段', 'error');
+            if (attempts >= maxAttempts) {
+                updateVideoStatus('训练时间超过24小时，请检查服务器日志或手动查看训练状态', true);
+                showNotification('训练时间较长，请检查服务器日志确认训练是否仍在进行', 'warning');
+                // 降低轮询频率
+                setTimeout(poll, 30000);
                 return;
             }
 
-            // 保存AU文件历史记录
-            const auInput = document.getElementById('au_file');
-            if (auInput && auInput.value.trim()) {
-                addAuHistory(auInput.value.trim());
-            }
-
-            const formData = new FormData(this);
-
-            // 显示加载动画
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.classList.add('active');
-
-            // 更新状态
-            updateVideoStatus('正在训练模型...');
-
-            // 立即从表单获取视频路径并播放
-            const refVideoPath = formData.get('ref_video');
-            const videoEl = document.getElementById('trainVideo');
-
-            if (refVideoPath) {
-                // 立即设置视频源并播放
-                const newSrc = "/" + refVideoPath.replace("\\", "/") + '?t=' + new Date().getTime();
-                videoEl.src = newSrc;
-                videoEl.load();
-                videoEl.play().catch(e => console.log('自动播放可能被阻止:', e));
-            }
-
-            let trainingData = null; // 用于在finally中访问
-
-            fetch('/model_training', {
-                method: 'POST',
-                body: formData
-            })
+            fetch(`/training_status/${taskId}`)
                 .then(res => {
                     if (!res.ok) {
                         throw new Error(`HTTP错误: ${res.status}`);
@@ -907,292 +1025,183 @@
                     return res.json();
                 })
                 .then(data => {
-                    trainingData = data; // 保存数据
-                    console.log("后端返回数据:", data);
+                    console.log("训练状态:", data);
+                    console.log("状态字段:", data.status);
+                    console.log("消息字段:", data.message);
 
-                    // 如果训练已开始，开始轮询状态
-                    if (data.status === 'started' && data.task_id) {
-                        updateVideoStatus('训练已开始，正在进行中...');
-                        showNotification('训练已开始，请稍候...', 'success');
-                        // 开始轮询训练状态
-                        pollTrainingStatus(data.task_id);
+                    // 直接根据状态处理
+                    if (data.status === 'error') {
+                        // 训练失败
+                        hideLoadingOverlay(); // 隐藏加载动画
+                        resetVideoDisplay();
+                        let errorMsg ='处理失败' || '未知错误';
+                        updateVideoStatus('训练失败: ' + errorMsg, true);
+                        showNotification('训练失败：' + errorMsg, 'error');
                         return;
                     }
 
-                    // 直接返回的训练结果处理
-                    if (data.status === 'success') {
-                        // 检查返回的是否是有效的模型路径
-                        const returnedPath = data.model_path || data.video_path || '';
+                    if (data.status === 'success' || data.status === 'completed') {
+                        // 训练完成
+                        hideLoadingOverlay(); // 隐藏加载动画
+                        const videoEl = document.getElementById('trainVideo');
+                        videoEl.pause();
+                        videoEl.currentTime = 0;
 
-                        // 模型路径的特征：包含output/ 且不以.mp4结尾
-                        if (returnedPath.includes('output/') &&
-                            !returnedPath.endsWith('.mp4') &&
-                            !returnedPath.endsWith('.avi') &&
-                            !returnedPath.endsWith('.mov')) {
-
-                            // 训练成功：停止播放视频，显示训练完成画面
-                            videoEl.pause();
-                            videoEl.currentTime = 0;
-
-                            document.getElementById('model_path_output').value = returnedPath;
-                            document.getElementById('training_result').style.display = 'block';
-                            updateVideoStatus('训练完成！模型路径: ' + returnedPath);
-                            showNotification('训练完成！', 'success');
-
-                        } else {
-                            // 训练失败的情况处理
-                            console.warn('训练失败，返回了视频路径或错误路径:', returnedPath);
-                            resetVideoDisplay();
-
-                            let errorMessage = '训练失败：请检查文件路径和预处理';
-                            if (data.message) {
-                                errorMessage += ' (' + data.message + ')';
-                            }
-
-                            updateVideoStatus(errorMessage, true);
-                            showNotification(errorMessage, 'error');
-                        }
-                    } else if (data.status === 'error') {
-                        // 后端明确返回错误
-                        resetVideoDisplay();
-                        let errorMsg = data.message || '未知错误';
-                        if (errorMsg.includes('preprocess') || errorMsg.includes('预处理')) {
-                            errorMsg = '预处理失败：' + errorMsg;
-                        }
-                        updateVideoStatus('训练失败: ' + errorMsg, true);
-                        showNotification('训练失败：' + errorMsg, 'error');
-                    } else {
-                        // 没有status字段或其他情况
-                        resetVideoDisplay();
-                        let errorMsg = '服务器返回数据格式异常';
-                        if (data.message) {
-                            errorMsg += ': ' + data.message;
-                        }
-                        updateVideoStatus('训练失败：' + errorMsg, true);
-                        showNotification('训练失败：' + errorMsg, 'error');
+                        const modelPath = data.model_path || '';
+                        document.getElementById('model_path_output').value = modelPath;
+                        document.getElementById('training_result').style.display = 'block';
+                        updateVideoStatus('训练完成！模型路径: ' + modelPath + ` (总耗时: ${formatTime(elapsedSeconds)})`);
+                        showNotification('训练完成！', 'success');
+                        return;
                     }
+
+                    // 训练进行中，继续轮询
+                    attempts++;
+
+                    let statusMessage = `训练进行中... (已等待 ${formatTime(elapsedSeconds)})`;
+
+                    // 更新加载动画文本
+                    const loadingText = document.getElementById('loadingText');
+                    if (loadingText) {
+                        loadingText.textContent = statusMessage;
+                    }
+
+                    // 如果有进度信息，显示进度
+                    if (data.progress) {
+                        statusMessage += '\n进度: ' + data.progress;
+                        if (loadingText) {
+                            loadingText.textContent += '\n进度: ' + data.progress;
+                        }
+                    }
+
+                    // 如果有阶段信息，显示阶段
+                    if (data.stage) {
+                        statusMessage += '\n当前阶段: ' + data.stage;
+                        if (loadingText) {
+                            loadingText.textContent += '\n当前阶段: ' + data.stage;
+                        }
+                    }
+
+                    updateVideoStatus(statusMessage);
+
+                    // 如果有完成时间估计，显示估计
+                    if (data.estimated_time) {
+                        updateVideoStatus(statusMessage + '\n预计剩余时间: ' + data.estimated_time);
+                        if (loadingText) {
+                            loadingText.textContent += '\n预计剩余时间: ' + data.estimated_time;
+                        }
+                    }
+
+                    setTimeout(poll, pollInterval);
                 })
                 .catch(err => {
-                    console.error('请求错误:', err);
-                    resetVideoDisplay();
-                    updateVideoStatus('请求错误：' + err.message, true);
-                    showNotification('训练失败，请检查网络连接或服务器状态', 'error');
-                })
-                .finally(() => {
-                    // 只有在同步训练完成时才隐藏加载动画
-                    if (trainingData && trainingData.status !== 'started') {
-                        setTimeout(() => {
-                            loadingOverlay.classList.remove('active');
-                        }, 500);
+                    console.error('轮询错误:', err);
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        // 网络错误时，延长轮询间隔到10秒
+                        const loadingText = document.getElementById('loadingText');
+                        if (loadingText) {
+                            loadingText.textContent = `网络错误，重试中... (已等待 ${formatTime(elapsedSeconds)})`;
+                        }
+                        updateVideoStatus(`网络错误，重试中... (已等待 ${formatTime(elapsedSeconds)})`, true);
+                        setTimeout(poll, 10000);
+                    } else {
+                        hideLoadingOverlay(); // 隐藏加载动画
+                        updateVideoStatus('无法获取训练状态，请检查服务器连接', true);
+                        showNotification('无法获取训练状态，请检查服务器连接', 'error');
                     }
                 });
-        });
+        };
 
-        // 轮询训练状态 - 修复版本
-        function pollTrainingStatus(taskId) {
-            const maxAttempts = 17280; // 24小时 = 86400秒 / 5秒 = 17280次
-            let attempts = 0;
-            const pollInterval = 5000; // 每5秒轮询一次
+        // 开始轮询
+        setTimeout(poll, pollInterval);
+    }
 
-            // 格式化时间显示
-            function formatTime(seconds) {
-                const hours = Math.floor(seconds / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
-                const secs = seconds % 60;
-                if (hours > 0) {
-                    return `${hours}小时${minutes}分钟${secs}秒`;
-                } else if (minutes > 0) {
-                    return `${minutes}分钟${secs}秒`;
-                } else {
-                    return `${secs}秒`;
-                }
-            }
-
-            const poll = () => {
-                const elapsedSeconds = Math.floor(attempts * pollInterval / 1000);
-
-                if (attempts >= maxAttempts) {
-                    updateVideoStatus('训练时间超过24小时，请检查服务器日志或手动查看训练状态', true);
-                    showNotification('训练时间较长，请检查服务器日志确认训练是否仍在进行', 'warning');
-                    // 降低轮询频率
-                    setTimeout(poll, 30000);
-                    return;
-                }
-
-                fetch(`/training_status/${taskId}`)
-                    .then(res => {
-                        if (!res.ok) {
-                            throw new Error(`HTTP错误: ${res.status}`);
-                        }
-                        return res.json();
-                    })
-                    .then(data => {
-                        console.log("训练状态:", data);
-                        console.log("状态字段:", data.status);
-                        console.log("消息字段:", data.message);
-
-                        // 修复：首先检查状态是否为 'error'
-                        if (data.status === 'error') {
-                            // 训练失败
-                            resetVideoDisplay();
-                            let errorMsg = data.message || '未知错误';
-                            // 检查是否是预处理失败
-                            if (errorMsg.includes('preprocess') ||
-                                errorMsg.includes('预处理') ||
-                                errorMsg.includes('filename, directory name') ||
-                                errorMsg.includes('syntax is incorrect')) {
-                                errorMsg = '预处理失败：' + errorMsg;
-                            }
-                            updateVideoStatus('训练失败: ' + errorMsg, true);
-                            showNotification('训练失败：' + errorMsg, 'error');
-                            document.getElementById('loadingOverlay').classList.remove('active');
-                            return;
-                        }
-
-                        // 然后检查状态是否为 'completed'
-                        if (data.status === 'completed') {
-                            // 训练完成
-                            const videoEl = document.getElementById('trainVideo');
-                            videoEl.pause();
-                            videoEl.currentTime = 0;
-
-                            document.getElementById('model_path_output').value = data.model_path || '';
-                            document.getElementById('training_result').style.display = 'block';
-                            updateVideoStatus('训练完成！模型路径: ' + (data.model_path || '') + ` (总耗时: ${formatTime(elapsedSeconds)})`);
-                            showNotification('训练完成！', 'success');
-                            document.getElementById('loadingOverlay').classList.remove('active');
-                            return;
-                        }
-
-                        // 最后处理其他状态（进行中）
-                        // 训练进行中，继续轮询
-                        attempts++;
-
-                        let statusMessage = `训练进行中... (已等待 ${formatTime(elapsedSeconds)})`;
-
-                        // 如果有进度信息，显示进度
-                        if (data.progress) {
-                            statusMessage += '\n进度: ' + data.progress;
-                        }
-
-                        // 如果有阶段信息，显示阶段
-                        if (data.stage) {
-                            statusMessage += '\n当前阶段: ' + data.stage;
-                        }
-
-                        updateVideoStatus(statusMessage);
-
-                        // 如果有完成时间估计，显示估计
-                        if (data.estimated_time) {
-                            updateVideoStatus(statusMessage + '\n预计剩余时间: ' + data.estimated_time);
-                        }
-
-                        setTimeout(poll, pollInterval);
-                    })
-                    .catch(err => {
-                        console.error('轮询错误:', err);
-                        attempts++;
-                        if (attempts < maxAttempts) {
-                            // 网络错误时，延长轮询间隔到10秒
-                            updateVideoStatus(`网络错误，重试中... (已等待 ${formatTime(elapsedSeconds)})`, true);
-                            setTimeout(poll, 10000);
-                        } else {
-                            updateVideoStatus('无法获取训练状态，请检查服务器连接', true);
-                            showNotification('无法获取训练状态，请检查服务器连接', 'error');
-                            document.getElementById('loadingOverlay').classList.remove('active');
-                        }
-                    });
-            };
-
-            // 开始轮询
-            setTimeout(poll, pollInterval);
-        }
-
-        // 通知提示函数
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 25px;
-                background: ${type === 'success' ? 'linear-gradient(135deg, #00c6ff, #0072ff)' : 'linear-gradient(135deg, #ff4757, #ff6348)'};
-                color: white;
-                border-radius: 10px;
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-                z-index: 10000;
-                animation: slideIn 0.3s ease;
-                font-weight: bold;
-            `;
-            notification.textContent = message;
-
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-
-        // 添加动画样式
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
+    // 通知提示函数
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: ${type === 'success' ? 'linear-gradient(135deg, #00c6ff, #0072ff)' : 'linear-gradient(135deg, #ff4757, #ff6348)'};
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            font-weight: bold;
         `;
-        document.head.appendChild(style);
+        notification.textContent = message;
 
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            const body = document.body;
-            // 恢复主题设置
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'light') {
-                body.classList.add('light-theme');
-            }
+        document.body.appendChild(notification);
 
-            // 初始化EPOCH字段状态
-            toggleEpochField();
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 
-            // 初始化AU文件历史记录功能
-            handleAuFileInput();
-            renderAuHistory();
+    // 添加动画样式
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
 
-            // 监听输入框变化，清除错误状态
-            const auInput = document.getElementById('au_file');
-            if (auInput) {
-                auInput.addEventListener('input', function() {
-                    if (this.value.trim()) {
-                        clearInputError('au_file');
-                    }
-                });
-            }
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        const body = document.body;
+        // 恢复主题设置
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            body.classList.add('light-theme');
+        }
 
-            const refVideoInput = document.getElementById('ref_video');
-            if (refVideoInput) {
-                refVideoInput.addEventListener('input', function() {
-                    if (this.value.trim()) {
-                        clearInputError('ref_video');
-                    }
-                });
-            }
+        // 初始化EPOCH字段状态
+        toggleEpochField();
 
-            const epochInput = document.getElementById('epoch');
-            if (epochInput) {
-                epochInput.addEventListener('input', function() {
-                    const value = parseInt(this.value);
-                    if (!isNaN(value) && value > 0) {
-                        clearInputError('epoch');
-                    }
-                });
-            }
-        });  
-    </script>  
+        // 初始化AU文件历史记录功能
+        handleAuFileInput();
+        renderAuHistory();
+
+        // 监听输入框变化，清除错误状态
+        const auInput = document.getElementById('au_file');
+        if (auInput) {
+            auInput.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    clearInputError('au_file');
+                }
+            });
+        }
+
+        const refVideoInput = document.getElementById('ref_video');
+        if (refVideoInput) {
+            refVideoInput.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    clearInputError('ref_video');
+                }
+            });
+        }
+
+        const epochInput = document.getElementById('epoch');
+        if (epochInput) {
+            epochInput.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                if (!isNaN(value) && value > 0) {
+                    clearInputError('epoch');
+                }
+            });
+        }
+    });
+</script>
 </body>  
 </html>
