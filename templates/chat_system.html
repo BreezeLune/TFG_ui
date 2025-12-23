@@ -869,15 +869,15 @@
                         </select>
                     </div>
 
-                    <!-- 自定义上传（当选择自定义时显示） -->
+                    <!-- 自定义上传（当选择自定义时显示）- 修改为手动输入 -->
                     <div id="custom_voice_group" class="sub-options" style="display: none; margin-top: 10px;">
-                        <label>上传音频文件</label>
-                        <input type="file"
-                               name="custom_voice_file"
-                               id="custom_voice_file"
-                               accept=".wav,.mp3,.m4a,.flac">
+                        <label>音频文件路径 <span class="required-star">*</span></label>
+                        <input type="text"
+                               name="custom_voice_path"
+                               id="custom_voice_path"
+                               placeholder="请输入音频文件路径，例如：static/uploads/audios/may_reference.wav">
                         <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 5px;">
-                            支持 .wav, .mp3, .m4a, .flac 格式
+                            请输入已上传的音频文件路径，支持 .wav, .mp3, .m4a, .flac 格式
                         </small>
                         <div id="upload_status" style="margin-top: 5px; font-size: 12px;"></div>
                     </div>
@@ -1005,14 +1005,13 @@
             if (loadingOverlay) loadingOverlay.classList.remove('active');
         });
 
-        // 语音克隆选项切换逻辑
+        // 语音克隆选项切换逻辑 - 修改为手动输入
         function initVoiceCloneOptions() {
             const voiceCloneRadios = document.querySelectorAll('input[name="voice_clone_type"]');
             const presetGroup = document.getElementById('preset_voice_group');
             const customGroup = document.getElementById('custom_voice_group');
-            const customFileInput = document.getElementById('custom_voice_file');
+            const customPathInput = document.getElementById('custom_voice_path');
             const uploadStatus = document.getElementById('upload_status');
-            let uploadedFileName = '';
 
             voiceCloneRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
@@ -1022,6 +1021,10 @@
                     } else if (this.value === 'custom') {
                         presetGroup.style.display = 'none';
                         customGroup.style.display = 'block';
+                        // 清空输入框
+                        if (customPathInput) {
+                            customPathInput.value = '';
+                        }
                     } else {
                         presetGroup.style.display = 'none';
                         customGroup.style.display = 'none';
@@ -1029,40 +1032,14 @@
                 });
             });
 
-            if (customFileInput) {
-                customFileInput.addEventListener('change', async function(e) {
-                    if (e.target.files.length > 0) {
-                        const file = e.target.files[0];
-                        const formData = new FormData();
-                        formData.append('audio', file);
-
-                        uploadStatus.textContent = '上传中...';
-                        uploadStatus.style.color = 'var(--accent-color)';
-
-                        try {
-                            const response = await fetch('/upload_voice_clone', {
-                                method: 'POST',
-                                body: formData
-                            });
-
-                            const data = await response.json();
-                            if (data.status === 'success') {
-                                uploadedFileName = data.filename;
-                                customFileInput.setAttribute('data-filename', data.filename);
-                                uploadStatus.textContent = '上传成功: ' + data.filename;
-                                uploadStatus.style.color = '#2ecc71';
-                                showNotification('音频上传成功', 'success');
-                            } else {
-                                uploadStatus.textContent = '上传失败: ' + (data.message || '未知错误');
-                                uploadStatus.style.color = '#e74c3c';
-                                showNotification('上传失败：' + data.message, 'error');
-                            }
-                        } catch (err) {
-                            console.error('上传错误:', err);
-                            uploadStatus.textContent = '上传失败，请重试';
-                            uploadStatus.style.color = '#e74c3c';
-                            showNotification('上传失败，请重试', 'error');
-                        }
+            // 监听手动输入框变化
+            if (customPathInput) {
+                customPathInput.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        uploadStatus.textContent = '路径已输入';
+                        uploadStatus.style.color = '#2ecc71';
+                    } else {
+                        uploadStatus.textContent = '';
                     }
                 });
             }
@@ -1208,9 +1185,9 @@
             }
 
             function uploadAudio(blob) {
-    if (currentUploadController) { 
-        try { currentUploadController.abort(); } catch {} 
-        currentUploadController = null; 
+    if (currentUploadController) {
+        try { currentUploadController.abort(); } catch {}
+        currentUploadController = null;
     }
     currentUploadController = new AbortController();
     const fd = new FormData();
@@ -1264,13 +1241,13 @@
                 const voiceCloneType = document.querySelector('input[name="voice_clone_type"]:checked').value;
 
                 if (voiceCloneType === 'custom') {
-                    const customFileInput = document.getElementById('custom_voice_file');
-                    const filename = customFileInput.getAttribute('data-filename');
-                    if (filename) {
-                        formData.append('custom_voice_file', filename);
+                    const customPathInput = document.getElementById('custom_voice_path');
+                    const filePath = customPathInput.value.trim();
+                    if (filePath) {
+                        formData.append('custom_voice_path', filePath);
                     } else {
-                        showNotification('请先上传自定义音频文件', 'error');
-                        updateChatStatus('请先上传自定义音频文件', true);
+                        showNotification('请先输入自定义音频文件路径', 'error');
+                        updateChatStatus('请先输入自定义音频文件路径', true);
                         toggleLoading(false);
                         return;
                     }
@@ -1425,13 +1402,13 @@
 
         // 第三步：检查语音克隆选项
         const voiceCloneType = document.querySelector('input[name="voice_clone_type"]:checked').value;
-        
+
         if (voiceCloneType === 'custom') {
-            const customFileInput = document.getElementById('custom_voice_file');
-            const filename = customFileInput.getAttribute('data-filename');
-            if (!filename) {
-                showNotification('请先上传自定义音频文件', 'error');
-                updateChatStatus('请先上传自定义音频文件', true);
+            const customPathInput = document.getElementById('custom_voice_path');
+            const filePath = customPathInput.value.trim();
+            if (!filePath) {
+                showNotification('请先输入自定义音频文件路径', 'error');
+                updateChatStatus('请先输入自定义音频文件路径', true);
                 return false;
             }
         }
