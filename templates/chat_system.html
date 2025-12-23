@@ -835,10 +835,40 @@
 
                 <div class="form-group">
                     <label>模型目录地址 <span class="required-star">*</span></label>
-                    <input type="text" name="model_param" id="model_param" placeholder="请输入模型目录路径">
+                    <input type="text" name="model_param" id="model_param" placeholder="请输入模型目录路径" list="model_history">
+                    <datalist id="model_history"></datalist>
                     <div id="model_param_error" class="error-message">请输入模型目录地址</div>
                     <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 5px;">
                         例如：output/talking_May
+                    </small>
+                </div>
+
+                <!-- AU文件上传 -->
+                <div class="form-group">
+                    <label>AU文件路径 <span class="required-star">*</span></label>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <input type="text"
+                               name="au_file_path"
+                               id="au_file_path"
+                               list="au_history"
+                               placeholder="例如：TalkingGaussian/data/May/au.csv"
+                               style="flex: 1;">
+                        <!-- 添加datalist元素 -->
+                        <datalist id="au_history"></datalist>
+                        <input type="file"
+                               id="au_file_input"
+                               accept=".csv"
+                               style="display: none;">
+                        <button type="button"
+                                id="upload_au_btn"
+                                style="padding: 10px 15px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 14px; white-space: nowrap;">
+                            上传CSV文件
+                        </button>
+                    </div>
+                    <div id="au_file_path_error" class="error-message">请上传或输入AU文件路径</div>
+                    <div id="au_upload_status" style="margin-top: 5px; font-size: 12px; color: var(--text-secondary);"></div>
+                    <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 5px;">
+                        示例路径：TalkingGaussian/data/May/au.csv
                     </small>
                 </div>
 
@@ -875,7 +905,9 @@
                         <input type="text"
                                name="custom_voice_path"
                                id="custom_voice_path"
-                               placeholder="请输入音频文件路径，例如：static/uploads/audios/may_reference.wav">
+                               placeholder="请输入音频文件路径，例如：static/uploads/audios/may_reference.wav"
+                               list="custom_voice_history">
+                        <datalist id="custom_voice_history"></datalist>
                         <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 5px;">
                             请输入已上传的音频文件路径，支持 .wav, .mp3, .m4a, .flac 格式
                         </small>
@@ -947,6 +979,13 @@
         // 全局部分：保持与 Reference 代码一致的风格
         // -----------------------------------------------------------------
 
+        // 存储历史记录的键名
+        const STORAGE_KEYS = {
+            MODEL_PATH: 'chat_model_path_history',
+            AU_PATH: 'chat_au_path_history',
+            CUSTOM_VOICE_PATH: 'chat_custom_voice_path_history'
+        };
+
         // 返回首页函数
         function goHome() {
             const loadingOverlay = document.getElementById('loadingOverlay');
@@ -1005,6 +1044,161 @@
             if (loadingOverlay) loadingOverlay.classList.remove('active');
         });
 
+        // 历史记录管理函数
+        function getHistory(key) {
+            try {
+                const history = localStorage.getItem(key);
+                return history ? JSON.parse(history) : [];
+            } catch (error) {
+                console.error(`获取历史记录 ${key} 失败:`, error);
+                return [];
+            }
+        }
+
+        function saveToHistory(key, value) {
+            if (!value || !value.trim()) return;
+
+            try {
+                let history = getHistory(key);
+
+                // 移除重复项
+                history = history.filter(item => item !== value);
+
+                // 添加到数组开头
+                history.unshift(value.trim());
+
+                // 限制历史记录数量（最多10条）
+                if (history.length > 10) {
+                    history = history.slice(0, 10);
+                }
+
+                localStorage.setItem(key, JSON.stringify(history));
+
+                // 更新对应的datalist
+                updateDatalist(key, history);
+
+                return true;
+            } catch (error) {
+                console.error(`保存历史记录 ${key} 失败:`, error);
+                return false;
+            }
+        }
+
+        function updateDatalist(key, history) {
+            let datalistId = '';
+
+            switch(key) {
+                case STORAGE_KEYS.MODEL_PATH:
+                    datalistId = 'model_history';
+                    break;
+                case STORAGE_KEYS.AU_PATH:
+                    datalistId = 'au_history';
+                    break;
+                case STORAGE_KEYS.CUSTOM_VOICE_PATH:
+                    datalistId = 'custom_voice_history';
+                    break;
+                default:
+                    return;
+            }
+
+            const datalist = document.getElementById(datalistId);
+            if (!datalist) return;
+
+            // 清空现有选项
+            datalist.innerHTML = '';
+
+            // 添加新的选项
+            history.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item;
+                datalist.appendChild(option);
+            });
+        }
+
+        // 初始化历史记录显示
+        function initHistory() {
+            // 初始化模型路径历史
+            const modelHistory = getHistory(STORAGE_KEYS.MODEL_PATH);
+            updateDatalist(STORAGE_KEYS.MODEL_PATH, modelHistory);
+
+            // 初始化AU路径历史
+            const auHistory = getHistory(STORAGE_KEYS.AU_PATH);
+            updateDatalist(STORAGE_KEYS.AU_PATH, auHistory);
+
+            // 初始化自定义语音路径历史
+            const customVoiceHistory = getHistory(STORAGE_KEYS.CUSTOM_VOICE_PATH);
+            updateDatalist(STORAGE_KEYS.CUSTOM_VOICE_PATH, customVoiceHistory);
+
+            // 设置模型路径输入框的初始提示
+            const modelInput = document.getElementById('model_param');
+            if (modelInput && modelHistory.length > 0) {
+                modelInput.placeholder = `例如：${modelHistory[0]}`;
+            }
+
+            // 设置AU路径输入框的初始提示
+            const auInput = document.getElementById('au_file_path');
+            if (auInput && auHistory.length > 0) {
+                auInput.placeholder = `例如：${auHistory[0]}`;
+            }
+
+            // 设置自定义语音路径输入框的初始提示
+            const customVoiceInput = document.getElementById('custom_voice_path');
+            if (customVoiceInput && customVoiceHistory.length > 0) {
+                customVoiceInput.placeholder = `例如：${customVoiceHistory[0]}`;
+            }
+        }
+
+        // 监听输入框变化并保存历史记录
+        function setupInputHistoryTracking() {
+            // 监听模型路径输入框
+            const modelInput = document.getElementById('model_param');
+            if (modelInput) {
+                modelInput.addEventListener('blur', function() {
+                    if (this.value && this.value.trim()) {
+                        saveToHistory(STORAGE_KEYS.MODEL_PATH, this.value);
+                    }
+                });
+
+                modelInput.addEventListener('change', function() {
+                    if (this.value && this.value.trim()) {
+                        saveToHistory(STORAGE_KEYS.MODEL_PATH, this.value);
+                    }
+                });
+            }
+
+            // 监听AU路径输入框
+            const auInput = document.getElementById('au_file_path');
+            if (auInput) {
+                auInput.addEventListener('blur', function() {
+                    if (this.value && this.value.trim()) {
+                        saveToHistory(STORAGE_KEYS.AU_PATH, this.value);
+                    }
+                });
+
+                auInput.addEventListener('change', function() {
+                    if (this.value && this.value.trim()) {
+                        saveToHistory(STORAGE_KEYS.AU_PATH, this.value);
+                    }
+                });
+            }
+
+            // 监听自定义语音路径输入框
+            const customVoiceInput = document.getElementById('custom_voice_path');
+            if (customVoiceInput) {
+                customVoiceInput.addEventListener('blur', function() {
+                    if (this.value && this.value.trim()) {
+                        saveToHistory(STORAGE_KEYS.CUSTOM_VOICE_PATH, this.value);
+                    }
+                });
+
+                customVoiceInput.addEventListener('change', function() {
+                    if (this.value && this.value.trim()) {
+                        saveToHistory(STORAGE_KEYS.CUSTOM_VOICE_PATH, this.value);
+                    }
+                });
+            }
+        }
+
         // 语音克隆选项切换逻辑 - 修改为手动输入
         function initVoiceCloneOptions() {
             const voiceCloneRadios = document.querySelectorAll('input[name="voice_clone_type"]');
@@ -1038,11 +1232,171 @@
                     if (this.value.trim()) {
                         uploadStatus.textContent = '路径已输入';
                         uploadStatus.style.color = '#2ecc71';
+
+                        // 保存到历史记录
+                        saveToHistory(STORAGE_KEYS.CUSTOM_VOICE_PATH, this.value);
                     } else {
                         uploadStatus.textContent = '';
                     }
                 });
             }
+        }
+
+        // AU文件上传函数
+        function initAUFileUpload() {
+            const auFileInput = document.getElementById('au_file_input');
+            const auFilePathInput = document.getElementById('au_file_path');
+            const uploadAuBtn = document.getElementById('upload_au_btn');
+            const auUploadStatus = document.getElementById('au_upload_status');
+            const modelParamInput = document.getElementById('model_param');
+
+            // 点击上传按钮触发文件选择
+            if (uploadAuBtn) {
+                uploadAuBtn.addEventListener('click', function() {
+                    if (auFileInput) {
+                        auFileInput.click();
+                    }
+                });
+            }
+
+            // 文件选择后自动上传
+            if (auFileInput) {
+                auFileInput.addEventListener('change', function(e) {
+                    if (e.target.files.length === 0) return;
+
+                    const file = e.target.files[0];
+
+                    // 检查文件类型
+                    if (!file.name.toLowerCase().endsWith('.csv')) {
+                        showNotification('请选择CSV格式的文件', 'error');
+                        auUploadStatus.textContent = '文件格式错误：请选择.csv文件';
+                        auUploadStatus.style.color = '#ff4757';
+                        return;
+                    }
+
+                    // 自动提取project_id
+                    let projectId = '';
+                    const modelPath = modelParamInput.value.trim();
+                    if (modelPath) {
+                        // 尝试从模型路径中提取项目ID
+                        // 例如：output/May 或 output/talking_May
+                        const match = modelPath.match(/output\/([^\/]+)/);
+                        if (match && match[1]) {
+                            projectId = match[1];
+                            // 清理可能的后缀
+                            projectId = projectId.replace(/^talking_/, '').replace(/^model_/, '');
+                        }
+                    }
+
+                    if (!projectId) {
+                        projectId = prompt('请输入项目ID（将用于保存到TalkingGaussian/data/<项目ID>/au.csv）：');
+                        if (!projectId) {
+                            showNotification('需要项目ID才能上传AU文件', 'error');
+                            auUploadStatus.textContent = '上传失败：需要项目ID';
+                            auUploadStatus.style.color = '#ff4757';
+                            return;
+                        }
+                    }
+
+                    uploadAUFile(file, projectId);
+                });
+            }
+
+            // 监听模型路径输入变化，尝试自动填充AU路径
+            if (modelParamInput && auFilePathInput) {
+                modelParamInput.addEventListener('input', function() {
+                    const modelPath = this.value.trim();
+                    if (modelPath && !auFilePathInput.value) {
+                        // 尝试自动生成AU路径
+                        const match = modelPath.match(/output\/([^\/]+)/);
+                        if (match && match[1]) {
+                            let projectId = match[1].replace(/^talking_/, '').replace(/^model_/, '');
+                            const suggestedPath = `TalkingGaussian/data/${projectId}/au.csv`;
+
+                            // 更新输入框的placeholder，但不直接设置value
+                            auFilePathInput.placeholder = suggestedPath;
+
+                            // 检查历史记录中是否有类似的路径
+                            const auHistory = getHistory(STORAGE_KEYS.AU_PATH);
+                            const similarPath = auHistory.find(path =>
+                                path.includes(projectId) ||
+                                path.includes(auFilePathInput.placeholder)
+                            );
+
+                            if (similarPath && !auFilePathInput.value) {
+                                // 显示历史记录作为提示
+                                auFilePathInput.setAttribute('title', `历史记录：${similarPath}`);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 上传AU文件到服务器
+        function uploadAUFile(file, projectId) {
+            const auUploadStatus = document.getElementById('au_upload_status');
+            const auFilePathInput = document.getElementById('au_file_path');
+
+            if (!file || !projectId) {
+                showNotification('上传失败：缺少文件或项目ID', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('project_id', projectId);
+            formData.append('au_file', file);
+
+            toggleLoading(true);
+            auUploadStatus.textContent = '正在上传AU文件...';
+            auUploadStatus.style.color = 'var(--accent-color)';
+
+            fetch('/upload_au', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                toggleLoading(false);
+
+                if (data.status === 'success') {
+                    // 上传成功，自动填充路径
+                    const auPath = `TalkingGaussian/data/${projectId}/au.csv`;
+                    if (auFilePathInput) {
+                        auFilePathInput.value = auPath;
+
+                        // 保存到历史记录
+                        saveToHistory(STORAGE_KEYS.AU_PATH, auPath);
+                    }
+
+                    auUploadStatus.textContent = `上传成功！文件已保存到：${auPath}`;
+                    auUploadStatus.style.color = '#2ecc71';
+                    showNotification('AU文件上传成功', 'success');
+
+                    // 清除错误状态
+                    clearInputError('au_file_path');
+
+                    // 自动填充表单中的AU路径
+                    if (auFilePathInput) {
+                        auFilePathInput.dispatchEvent(new Event('input'));
+                    }
+                } else {
+                    auUploadStatus.textContent = `上传失败：${data.message || '未知错误'}`;
+                    auUploadStatus.style.color = '#ff4757';
+                    showNotification(`AU文件上传失败：${data.message || '未知错误'}`, 'error');
+                    // 设置错误状态
+                    showInputError('au_file_path', 'AU文件上传失败');
+                }
+            })
+            .catch(error => {
+                toggleLoading(false);
+                console.error('AU文件上传错误:', error);
+                auUploadStatus.textContent = '上传失败：网络错误';
+                auUploadStatus.style.color = '#ff4757';
+                showNotification('AU文件上传失败：网络错误', 'error');
+                // 设置错误状态
+                showInputError('au_file_path', 'AU文件上传失败');
+            });
         }
 
         // 语速值更新函数
@@ -1088,6 +1442,25 @@
                 hasError = true;
             } else {
                 clearInputError('model_param');
+            }
+
+            // 添加AU文件路径验证
+            const auFilePathInput = document.getElementById('au_file_path');
+            const auFilePathValue = auFilePathInput ? auFilePathInput.value.trim() : '';
+
+            if (!auFilePathValue) {
+                showInputError('au_file_path', '请上传或输入AU文件路径');
+                isValid = false;
+                hasError = true;
+            } else {
+                // 验证AU文件路径格式
+                if (!auFilePathValue.endsWith('.csv') && !auFilePathValue.includes('au.csv')) {
+                    showInputError('au_file_path', 'AU文件路径应指向au.csv文件');
+                    isValid = false;
+                    hasError = true;
+                } else {
+                    clearInputError('au_file_path');
+                }
             }
 
             return {isValid: isValid, hasError: hasError};
@@ -1223,11 +1596,24 @@
 }
 
             function triggerChat() {
-                // 首先验证表单
+                // 首先验证表单（包括AU文件）
                 const validationResult = validateChatForm();
                 if (!validationResult.isValid) {
-                    showNotification('请填写模型目录地址', 'error');
-                    updateChatStatus('请填写模型目录地址', true);
+                    showNotification('请填写所有必填项', 'error');
+                    updateChatStatus('请填写所有必填项', true);
+                    resetChatVideoDisplay();
+                    toggleLoading(false);
+                    return;
+                }
+
+                // 获取AU文件路径
+                const auFilePathInput = document.getElementById('au_file_path');
+                const auFilePath = auFilePathInput ? auFilePathInput.value.trim() : '';
+
+                // 再次验证AU文件路径（双重验证）
+                if (!auFilePath) {
+                    showNotification('AU文件路径不能为空', 'error');
+                    updateChatStatus('AU文件路径不能为空', true);
                     resetChatVideoDisplay();
                     toggleLoading(false);
                     return;
@@ -1237,6 +1623,20 @@
                 currentChatController = new AbortController();
                 const form = document.getElementById('chatForm');
                 const formData = new FormData(form);
+
+                // 保存模型路径到历史记录
+                const modelParamInput = document.getElementById('model_param');
+                if (modelParamInput && modelParamInput.value.trim()) {
+                    saveToHistory(STORAGE_KEYS.MODEL_PATH, modelParamInput.value);
+                }
+
+                // 保存AU文件路径到历史记录
+                if (auFilePath) {
+                    saveToHistory(STORAGE_KEYS.AU_PATH, auFilePath);
+                }
+
+                // 添加AU文件路径（必选）
+                formData.append('au_file_path', auFilePath);
 
                 const voiceCloneType = document.querySelector('input[name="voice_clone_type"]:checked').value;
 
@@ -1391,11 +1791,11 @@
             return false;
         }
 
-        // 第二步：表单验证
+        // 第二步：表单验证（包括AU文件）
         const validationResult = validateChatForm();
         if (!validationResult.isValid) {
-            showNotification('请填写模型目录地址', 'error');
-            updateChatStatus('请填写模型目录地址', true);
+            showNotification('请填写所有必填项', 'error');
+            updateChatStatus('请填写所有必填项', true);
             resetChatVideoDisplay();
             return false;
         }
@@ -1413,21 +1813,31 @@
             }
         }
 
+        // 第四步：验证AU文件路径格式
+        const auFilePathInput = document.getElementById('au_file_path');
+        if (auFilePathInput && auFilePathInput.value.trim()) {
+            const auPath = auFilePathInput.value.trim();
+            if (!auPath.endsWith('.csv') && !auPath.includes('au.csv')) {
+                showNotification('AU文件路径应指向au.csv文件', 'warning');
+                // 这里只是警告，不阻止提交，因为表单验证已经处理了
+            }
+        }
+
         triggerChat();
     });
 }
 
             // 清理函数
             function cleanup() {
-                if (mediaRecorder && isRecording) { 
-                try { mediaRecorder.stop(); } catch {} 
+                if (mediaRecorder && isRecording) {
+                try { mediaRecorder.stop(); } catch {}
                 }
                 if (timerInterval) clearInterval(timerInterval);
                 try { if (currentUploadController) currentUploadController.abort(); } catch {}
                 try { if (currentChatController) currentChatController.abort(); } catch {}
                 window.hasValidRecording = false;  // 清除录音标志
                 toggleLoading(false);
-            }   
+            }
 
             // 监听 bfcache 恢复
             window.addEventListener('pageshow', (e) => {
@@ -1448,6 +1858,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             initVoiceCloneOptions();
             updateSpeedValue(1.0); // 初始化语速显示
+            initAUFileUpload(); // 初始化AU文件上传功能
+
+            // 初始化历史记录功能
+            initHistory();
+            setupInputHistoryTracking();
 
             const body = document.body;
             // 恢复主题设置
@@ -1462,6 +1877,16 @@
                 modelParamInput.addEventListener('input', function() {
                     if (this.value.trim()) {
                         clearInputError('model_param');
+                    }
+                });
+            }
+
+            // 监听AU文件路径输入框变化，清除错误状态
+            const auFilePathInput = document.getElementById('au_file_path');
+            if (auFilePathInput) {
+                auFilePathInput.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        clearInputError('au_file_path');
                     }
                 });
             }
