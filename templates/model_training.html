@@ -1,321 +1,384 @@
 <!DOCTYPE html>
-<html lang="zh">  
-<head>  
-    <meta charset="UTF-8">  
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-    <title>模型训练界面</title>  
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">  
-    <style>  
-        :root {  
-            --primary-color: #00c6ff;  
-            --secondary-color: #0072ff;  
-            --accent-color: #00e5ff;  
-            --bg-dark: #0a0a0a;  
-            --bg-light: #1b1b1b;  
-            --text-primary: #ffffff;  
-            --text-secondary: rgba(255, 255, 255, 0.7);  
-            --glass-bg: rgba(255, 255, 255, 0.05);  
-            --glass-border: rgba(255, 255, 255, 0.2);  
-            --neon-glow: rgba(0, 229, 255, 0.8);  
-        }  
-        /* 浅色主题变量 - 使用新的紫色系配色 */  
-        body.light-theme {  
-            --primary-color: #6366f1;  
-            --secondary-color: #8b5cf6;  
-            --accent-color: #06b6d4;  
-            --bg-dark: #f8fafc;  
-            --bg-light: #ffffff;  
-            --text-primary: #1e293b;  
-            --text-secondary: rgba(30, 41, 59, 0.7);  
-            --glass-bg: rgba(255, 255, 255, 0.9);  
-            --glass-border: rgba(99, 102, 241, 0.2);  
-        }  
-        
-        /* 浅色模式背景 */  
-        body.light-theme.subpage-bg {  
-            background: radial-gradient(circle at top left, #e0e7ff 0%, #ffffff 50%, #f3f4f6 100%);  
-        }  
-        
-        /* 浅色模式粒子层 */  
-        body.light-theme.subpage-bg::before {  
-            opacity: 0.6;  
-            filter: hue-rotate(20deg);  
-            mix-blend-mode: multiply;  
-        }  
-        
-        /* 浅色模式3D网格线 */  
-        body.light-theme.subpage-bg::after {  
-            opacity: 0.4;  
-            background:   
-                linear-gradient(45deg, transparent 40%, rgba(99, 102, 241, 0.05) 50%, transparent 60%),  
-                linear-gradient(-45deg, transparent 40%, rgba(6, 182, 212, 0.05) 50%, transparent 60%);  
-        }  
-        
-        /* 浅色模式容器 */  
-        body.light-theme .video-page-container {  
-            background: rgba(255, 255, 255, 0.65);  
-            border: 1px solid rgba(255, 255, 255, 0.8);  
-            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.1);  
-            backdrop-filter: blur(20px) saturate(180%);  
-        }  
-        
-        /* 浅色模式返回按钮 */  
-        body.light-theme .back-btn {  
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);  
-            border: 1px solid rgba(255, 255, 255, 0.4);  
-            color: white;  
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);  
-        }  
-        
-        body.light-theme .back-btn:hover {  
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);  
-            box-shadow: 0 15px 30px rgba(124, 58, 237, 0.4);  
-        }  
-        
-        /* 浅色模式标题 */  
-        body.light-theme h2 {  
-            background: linear-gradient(135deg, #4f46e5, #06b6d4);  
-            -webkit-background-clip: text;  
-            background-clip: text;  
-            -webkit-text-fill-color: transparent;  
-            text-shadow: none;  
-            filter: drop-shadow(0 2px 10px rgba(99, 102, 241, 0.2));  
-        }  
-        
-        /* 浅色模式表单元素 */  
-        body.light-theme select,  
-        body.light-theme input,  
-        body.light-theme textarea {  
-            background: rgba(255, 255, 255, 0.8);  
-            border-color: rgba(99, 102, 241, 0.2);  
-            color: var(--text-primary);  
-        }  
-        
-        /* 浅色模式生成按钮 */  
-        body.light-theme .generate-btn {  
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);  
-            border: 1px solid rgba(255, 255, 255, 0.4);  
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);  
-        }  
-        
-        body.light-theme .generate-btn:hover {  
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);  
-            box-shadow: 0 15px 30px rgba(124, 58, 237, 0.4);  
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型训练界面</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --primary-color: #00c6ff;
+            --secondary-color: #0072ff;
+            --accent-color: #00e5ff;
+            --bg-dark: #0a0a0a;
+            --bg-light: #1b1b1b;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --neon-glow: rgba(0, 229, 255, 0.8);
         }
-  
-        body.subpage-bg {  
-            background: radial-gradient(circle at center, var(--bg-dark) 0%, var(--bg-light) 100%);  
-            color: var(--text-primary);  
-            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;  
-            margin: 0;  
-            padding: 20px;  
-            min-height: 100vh;  
-            position: relative;  
-            overflow-x: hidden;  
-        }  
-  
-        /* 粒子背景效果 */  
-        body.subpage-bg::before {  
-            content: '';  
-            position: fixed;  
-            top: 0;  
-            left: 0;  
-            width: 100%;  
-            height: 100%;  
-            background-image:   
-                radial-gradient(circle at 20% 50%, rgba(0, 198, 255, 0.1) 0%, transparent 50%),  
-                radial-gradient(circle at 80% 80%, rgba(0, 114, 255, 0.1) 0%, transparent 50%),  
-                radial-gradient(circle at 40% 20%, rgba(0, 229, 255, 0.1) 0%, transparent 50%);  
-            animation: particleFloat 20s ease-in-out infinite;  
-            pointer-events: none;  
-            z-index: 0;  
-        }  
-  
-        .page-header {  
-            display: flex;  
-            align-items: center;  
-            gap: 20px;  
-            margin-bottom: 30px;  
-            position: relative;  
-            z-index: 1;  
-        }  
-          
-        .back-btn {  
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));  
-            border: 2px solid rgba(0, 229, 255, 0.3);  
-            color: var(--text-primary);  
-            padding: 12px 24px;  
-            border-radius: 10px;  
-            cursor: pointer;  
-            font-size: 14px;  
-            font-weight: bold;  
-            transition: all 0.3s ease;  
-            box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);  
-            position: relative;  
-            overflow: hidden;  
-        }  
-          
-        .back-btn::before {  
-            content: '';  
-            position: absolute;  
-            top: 50%;  
-            left: 50%;  
-            width: 0;  
-            height: 0;  
-            border-radius: 50%;  
-            background: rgba(255, 255, 255, 0.2);  
-            transform: translate(-50%, -50%);  
-            transition: width 0.6s, height 0.6s;  
-        }  
-          
-        .back-btn:hover::before {  
-            width: 200px;  
-            height: 200px;  
-        }  
-          
-        .back-btn:hover {  
-            transform: translateY(-2px);  
-            box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);  
-            border-color: var(--accent-color);  
-        }  
-          
-        h2 {  
-            margin: 0;  
-            color: var(--accent-color);  
-            font-size: 2rem;  
-            text-shadow: 0 0 20px rgba(0, 229, 255, 0.6);  
-            animation: glowText 3s infinite alternate;  
-        }  
-  
-        .video-page-container {  
-            display: flex;  
-            max-width: 1200px;  
-            margin: 0 auto;  
-            background: var(--glass-bg);  
-            border: 1px solid var(--glass-border);  
-            border-radius: 20px;  
-            box-shadow: 0 0 40px rgba(0, 200, 255, 0.2);  
-            backdrop-filter: blur(15px);  
-            overflow: hidden;  
-            position: relative;  
-            z-index: 1;  
-        }  
-  
-        .video-display {  
-            flex: 1;  
-            padding: 30px;  
-            display: flex;  
-            flex-direction: column;  
-            align-items: center;  
-            background: rgba(0, 0, 0, 0.2);  
-        }  
-  
-        .video-display video {  
-            border-radius: 15px;  
-            box-shadow: 0 0 30px rgba(0, 229, 255, 0.4);  
-            margin-bottom: 20px;  
-            border: 2px solid var(--glass-border);  
-            width: 640px;  /* 统一视频显示尺寸 */  
-            height: 480px; /* 统一视频显示尺寸 */  
-            object-fit: contain; /* 保持视频比例 */  
-            background: #000; /* 黑色背景 */  
-        }  
-  
-        .form-section {  
-            flex: 1;  
-            padding: 30px;  
-            background: rgba(255, 255, 255, 0.02);  
-            border-left: 1px solid var(--glass-border);  
-        }  
-  
-        .form-group {  
-            margin-bottom: 25px;  
-        }  
-  
-        label {  
-            display: block;  
-            margin-bottom: 10px;  
-            font-weight: bold;  
-            color: var(--text-primary);  
-            font-size: 14px;  
-            text-transform: uppercase;  
-            letter-spacing: 1px;  
-        }  
-  
-        select, input, textarea {  
-            width: 100%;  
-            padding: 12px 15px;  
-            border: 2px solid var(--glass-border);  
-            border-radius: 10px;  
-            font-size: 16px;  
-            box-sizing: border-box;  
-            background: rgba(255, 255, 255, 0.05);  
-            color: var(--text-primary);  
-            transition: all 0.3s ease;  
-        }  
-  
-        select:focus, input:focus, textarea:focus {  
-            outline: none;  
-            border-color: var(--accent-color);  
-            box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);  
-            background: rgba(255, 255, 255, 0.08);  
-        }  
-  
-        select option {  
-            background: var(--bg-dark);  
-            color: var(--text-primary);  
-        }  
-  
-        textarea {  
-            min-height: 100px;  
-            resize: vertical;  
-        }  
-  
-        .generate-btn {  
-            width: 100%;  
-            padding: 15px;  
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));  
-            color: var(--text-primary);  
-            border: 2px solid rgba(0, 229, 255, 0.3);  
-            border-radius: 12px;  
-            font-size: 18px;  
-            font-weight: bold;  
-            cursor: pointer;  
-            transition: all 0.3s ease;  
-            text-transform: uppercase;  
-            letter-spacing: 2px;  
-            position: relative;  
-            overflow: hidden;  
-        }  
-  
-        .generate-btn::before {  
-            content: '';  
-            position: absolute;  
-            top: 50%;  
-            left: 50%;  
-            width: 0;  
-            height: 0;  
-            border-radius: 50%;  
-            background: rgba(255, 255, 255, 0.2);  
-            transform: translate(-50%, -50%);  
-            transition: width 0.6s, height 0.6s;  
-        }  
-  
-        .generate-btn:hover::before {  
-            width: 300px;  
-            height: 300px;  
-        }  
-  
-        .generate-btn:hover {  
-            transform: translateY(-2px);  
-            box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);  
-            border-color: var(--accent-color);  
-        }  
-  
-        .generate-btn:active {  
-            transform: scale(0.98);  
-        }  
-  
+        /* 浅色主题变量 - 使用新的紫色系配色 */
+        body.light-theme {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --accent-color: #06b6d4;
+            --bg-dark: #f8fafc;
+            --bg-light: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: rgba(30, 41, 59, 0.7);
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(99, 102, 241, 0.2);
+        }
+
+        /* 浅色模式背景 */
+        body.light-theme.subpage-bg {
+            background: radial-gradient(circle at top left, #e0e7ff 0%, #ffffff 50%, #f3f4f6 100%);
+        }
+
+        /* 浅色模式粒子层 */
+        body.light-theme.subpage-bg::before {
+            opacity: 0.6;
+            filter: hue-rotate(20deg);
+            mix-blend-mode: multiply;
+        }
+
+        /* 浅色模式3D网格线 */
+        body.light-theme.subpage-bg::after {
+            opacity: 0.4;
+            background:
+                linear-gradient(45deg, transparent 40%, rgba(99, 102, 241, 0.05) 50%, transparent 60%),
+                linear-gradient(-45deg, transparent 40%, rgba(6, 182, 212, 0.05) 50%, transparent 60%);
+        }
+
+        /* 浅色模式容器 */
+        body.light-theme .video-page-container {
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.1);
+            backdrop-filter: blur(20px) saturate(180%);
+        }
+
+        /* 浅色模式返回按钮 */
+        body.light-theme .back-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        body.light-theme .back-btn:hover {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            box-shadow: 0 15px 30px rgba(124, 58, 237, 0.4);
+        }
+
+        /* 浅色模式标题 */
+        body.light-theme h2 {
+            background: linear-gradient(135deg, #4f46e5, #06b6d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
+            filter: drop-shadow(0 2px 10px rgba(99, 102, 241, 0.2));
+        }
+
+        /* 浅色模式表单元素 */
+        body.light-theme select,
+        body.light-theme input,
+        body.light-theme textarea {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: rgba(99, 102, 241, 0.2);
+            color: var(--text-primary);
+        }
+
+        /* 浅色模式生成按钮 */
+        body.light-theme .generate-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        body.light-theme .generate-btn:hover {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            box-shadow: 0 15px 30px rgba(124, 58, 237, 0.4);
+        }
+
+        body.subpage-bg {
+            background: radial-gradient(circle at center, var(--bg-dark) 0%, var(--bg-light) 100%);
+            color: var(--text-primary);
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 粒子背景效果 */
+        body.subpage-bg::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(0, 198, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 114, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(0, 229, 255, 0.1) 0%, transparent 50%);
+            animation: particleFloat 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: 2px solid rgba(0, 229, 255, 0.3);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .back-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .back-btn:hover::before {
+            width: 200px;
+            height: 200px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);
+            border-color: var(--accent-color);
+        }
+
+        h2 {
+            margin: 0;
+            color: var(--accent-color);
+            font-size: 2rem;
+            text-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+            animation: glowText 3s infinite alternate;
+        }
+
+        .video-page-container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(0, 200, 255, 0.2);
+            backdrop-filter: blur(15px);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        .video-display {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .video-display video {
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
+            margin-bottom: 20px;
+            border: 2px solid var(--glass-border);
+            width: 640px;  /* 统一视频显示尺寸 */
+            height: 480px; /* 统一视频显示尺寸 */
+            object-fit: contain; /* 保持视频比例 */
+            background: #000; /* 黑色背景 */
+        }
+
+        .form-section {
+            flex: 1;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 1px solid var(--glass-border);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: var(--text-primary);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        select option {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-primary);
+            border: 2px solid rgba(0, 229, 255, 0.3);
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .generate-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);
+            border-color: var(--accent-color);
+        }
+
+        .generate-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* AU文件上传区域样式 - 修改 */
+        .au-upload-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .au-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .au-input-group input {
+            flex: 1;
+        }
+
+        .file-select-btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: 2px solid rgba(0, 229, 255, 0.3);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-width: 120px;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+        }
+
+        .file-select-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.5);
+            border-color: var(--accent-color);
+        }
+
+        .file-info {
+            margin-top: 5px;
+            padding: 8px 12px;
+            background: rgba(0, 198, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .file-size {
+            margin-left: 10px;
+            color: var(--text-secondary);
+        }
+
         /* AU文件历史下拉样式 - 修改为与参考视频输入框相同样式 */
         .history-dropdown {
             position: relative;
@@ -425,6 +488,14 @@
                 position: relative;
                 margin-top: 5px;
             }
+
+            .au-input-group {
+                flex-direction: column;
+            }
+
+            .file-select-btn {
+                width: 100%;
+            }
         }
 
         /* 加载状态 */
@@ -491,22 +562,22 @@
 
     <div class="video-page-container">
         <!-- 左侧：训练结果视频 -->
-      <!-- 左侧：训练结果视频 -->
-<div class="video-display">
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
-        <div id="loadingText" style="position: absolute; top: 60%; color: var(--accent-color); font-size: 14px; text-align: center; width: 100%;">
-            训练中...
+        <!-- 左侧：训练结果视频 -->
+        <div class="video-display">
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-spinner"></div>
+                <div id="loadingText" style="position: absolute; top: 60%; color: var(--accent-color); font-size: 14px; text-align: center; width: 100%;">
+                    训练中...
+                </div>
+            </div>
+            <video id="trainVideo" controls>
+                <source src="{{ url_for('static', filename='videos/sample.mp4') }}" type="video/mp4">
+                您的浏览器不支持 video 标签。
+            </video>
+            <div id="videoStatus" style="text-align: center; color: var(--accent-color); font-size: 14px; margin-top: 10px;">
+                准备训练模型
+            </div>
         </div>
-    </div>
-    <video id="trainVideo" controls>
-        <source src="{{ url_for('static', filename='videos/sample.mp4') }}" type="video/mp4">
-        您的浏览器不支持 video 标签。
-    </video>
-    <div id="videoStatus" style="text-align: center; color: var(--accent-color); font-size: 14px; margin-top: 10px;">
-        准备训练模型
-    </div>
-</div>
 
         <!-- 右侧：输入框 -->
         <div class="form-section">
@@ -520,23 +591,31 @@
                     </select>
                 </div>
 
-                <!-- 修改：AU文件上传（必填） -->
+                <!-- 修改：AU文件上传（必填）- 添加文件选择器 -->
                 <div class="form-group">
                     <label>AU文件上传 <span style="color: #ff4757;">*</span></label>
-                    <div class="history-dropdown">
-                        <input type="text"
-                               name="au_file"
-                               id="au_file"
-                               placeholder="请输入AU文件路径，或从历史记录中选择"
-                               required
-                               onfocus="showHistorySuggestions()"
-                               list="au_history_list">
+                    <div class="au-upload-container">
+                        <div class="au-input-group">
+                            <input type="text"
+                                   name="au_file"
+                                   id="au_file"
+                                   placeholder="请输入AU文件路径，或选择文件"
+                                   required
+                                   onfocus="showHistorySuggestions()"
+                                   list="au_history_list">
+                            <button type="button" class="file-select-btn" onclick="openFilePicker()">选择文件</button>
+                        </div>
+                        <div id="file_info" class="file-info"></div>
+                        <input type="file"
+                               id="au_file_input"
+                               accept=".csv,.txt"
+                               style="display: none;"
+                               onchange="handleFileSelect(event)">
                         <div id="au_file_error" class="error-message">请输入AU文件路径</div>
                     </div>
                     <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 5px;">
-                        • <strong></strong>请提供通过OpenFace生成的AU文件<br>
-                        • 格式：au.csv 文件路径，例如：TalkingGaussian/data/May/au.csv<br>
-
+                        • <strong>请提供通过OpenFace生成的AU文件</strong><br>
+                        • 支持格式：CSV文件 (au.csv)<br>
                     </small>
                 </div>
 
@@ -594,430 +673,412 @@
         </div>
     </div>
 
- <script>
-    // AU文件历史记录功能
-    const AU_HISTORY_KEY = 'au_file_history';
-    const MAX_HISTORY_ITEMS = 10;
+    <script>
+        // AU文件历史记录功能
+        const AU_HISTORY_KEY = 'au_file_history';
+        const MAX_HISTORY_ITEMS = 10;
 
-    // 获取AU历史记录
-    function getAuHistory() {
-        const history = localStorage.getItem(AU_HISTORY_KEY);
-        return history ? JSON.parse(history) : [];
-    }
-
-    // 保存AU历史记录
-    function saveAuHistory(history) {
-        localStorage.setItem(AU_HISTORY_KEY, JSON.stringify(history));
-    }
-
-    // 添加AU历史记录
-    function addAuHistory(path) {
-        if (!path || path.trim() === '') return;
-
-        const history = getAuHistory();
-        // 移除已存在的相同路径
-        const filteredHistory = history.filter(item => item !== path);
-        // 添加到开头
-        filteredHistory.unshift(path);
-        // 限制数量
-        const limitedHistory = filteredHistory.slice(0, MAX_HISTORY_ITEMS);
-        saveAuHistory(limitedHistory);
-        renderAuHistory();
-    }
-
-    // 渲染AU历史记录
-    function renderAuHistory() {
-        const history = getAuHistory();
-        const container = document.getElementById('au_history_items');
-
-        if (!container) return;
-
-        if (history.length === 0) {
-            container.innerHTML = '<div class="history-item" style="color: var(--text-secondary); text-align: center;">暂无历史记录</div>';
-            return;
+        // 获取AU历史记录
+        function getAuHistory() {
+            const history = localStorage.getItem(AU_HISTORY_KEY);
+            return history ? JSON.parse(history) : [];
         }
 
-        container.innerHTML = history.map(path =>
-            `<div class="history-item" onclick="selectAuPath('${path.replace(/'/g, "\\'")}')">
-                ${path}
-            </div>`
-        ).join('');
-    }
-
-    // 选择AU路径
-    function selectAuPath(path) {
-        const input = document.getElementById('au_file');
-        if (input) {
-            input.value = path;
-            clearInputError('au_file');
-            // 触发输入事件以保存到历史记录
-            const event = new Event('input', { bubbles: true });
-            input.dispatchEvent(event);
+        // 保存AU历史记录
+        function saveAuHistory(history) {
+            localStorage.setItem(AU_HISTORY_KEY, JSON.stringify(history));
         }
-        hideHistorySuggestions();
-    }
 
-    // 清除AU历史记录
-    function clearAuHistory() {
-        if (confirm('确定要清除AU文件历史记录吗？')) {
-            localStorage.removeItem(AU_HISTORY_KEY);
-            renderAuHistory();
-            showNotification('历史记录已清除', 'success');
-        }
-    }
+        // 添加AU历史记录
+        function addAuHistory(path) {
+            if (!path || path.trim() === '') return;
 
-    // 显示历史建议
-    function showHistorySuggestions() {
-        const suggestions = document.getElementById('au_history_suggestions');
-        if (suggestions) {
-            suggestions.classList.add('show');
+            const history = getAuHistory();
+            // 移除已存在的相同路径
+            const filteredHistory = history.filter(item => item !== path);
+            // 添加到开头
+            filteredHistory.unshift(path);
+            // 限制数量
+            const limitedHistory = filteredHistory.slice(0, MAX_HISTORY_ITEMS);
+            saveAuHistory(limitedHistory);
             renderAuHistory();
         }
-    }
 
-    // 隐藏历史建议
-    function hideHistorySuggestions() {
-        setTimeout(() => {
-            const suggestions = document.getElementById('au_history_suggestions');
-            if (suggestions) {
-                suggestions.classList.remove('show');
-            }
-        }, 200);
-    }
+        // 渲染AU历史记录
+        function renderAuHistory() {
+            const history = getAuHistory();
+            const container = document.getElementById('au_history_items');
 
-    // 处理表单中的AU文件输入
-    function handleAuFileInput() {
-        const auInput = document.getElementById('au_file');
-        if (auInput) {
-            // 监听输入事件，保存历史记录
-            auInput.addEventListener('input', function(e) {
-                const value = this.value.trim();
-                if (value && value.length > 0) {
-                    clearInputError('au_file');
-                }
-            });
+            if (!container) return;
 
-            // 监听焦点事件
-            auInput.addEventListener('focus', showHistorySuggestions);
-            auInput.addEventListener('blur', function() {
-                setTimeout(hideHistorySuggestions, 200);
-            });
-
-            // 监听点击事件，防止点击历史项时立即隐藏
-            auInput.addEventListener('click', function(e) {
-                e.stopPropagation();
-                showHistorySuggestions();
-            });
-        }
-
-        // 点击页面其他地方隐藏历史记录
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.history-dropdown')) {
-                hideHistorySuggestions();
-            }
-        });
-
-        // 监听历史记录项的鼠标事件
-        document.addEventListener('mousedown', function(e) {
-            if (e.target.closest('.history-item')) {
-                // 阻止输入框的blur事件
-                e.preventDefault();
-            }
-        });
-    }
-
-    // 返回首页函数
-    function goHome() {
-        // 显示加载动画
-        showLoadingOverlay('正在返回首页...');
-
-        // 清除可能的缓存问题
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister();
-                }
-            });
-        }
-
-        // 强制刷新首页
-        setTimeout(() => {
-            window.location.href = '/?t=' + new Date().getTime();
-        }, 300);
-    }
-
-    // EPOCH字段显示/隐藏控制
-    function toggleEpochField() {
-        const modelChoice = document.getElementById('model_choice').value;
-        const epochGroup = document.getElementById('epoch_group');
-
-        if (modelChoice === 'SyncTalk') {
-            epochGroup.style.display = 'block';
-        } else {
-            epochGroup.style.display = 'none';
-        }
-    }
-
-    // 复制模型路径
-    function copyModelPath() {
-        const modelPathInput = document.getElementById('model_path_output');
-        modelPathInput.select();
-        document.execCommand('copy');
-        showNotification('模型路径已复制到剪贴板', 'success');
-    }
-
-    // 更新视频状态显示
-    function updateVideoStatus(status, isError = false) {
-        const statusEl = document.getElementById('videoStatus');
-        if (statusEl) {
-            statusEl.textContent = status;
-            statusEl.style.color = isError ? '#ff4757' : 'var(--accent-color)';
-        }
-    }
-
-    // 重置视频显示
-    function resetVideoDisplay() {
-        const videoEl = document.getElementById('trainVideo');
-        const statusEl = document.getElementById('videoStatus');
-
-        // 隐藏加载动画
-        hideLoadingOverlay();
-
-        // 重置视频源到默认
-        const defaultSrc = "{{ url_for('static', filename='videos/sample.mp4') }}";
-        videoEl.src = defaultSrc + '?t=' + new Date().getTime();
-        videoEl.load();
-
-        // 重置状态显示
-        if (statusEl) {
-            statusEl.textContent = '准备训练模型';
-            statusEl.style.color = 'var(--accent-color)';
-        }
-    }
-
-    // 显示加载动画
-    function showLoadingOverlay(message = '训练中...') {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const loadingText = document.getElementById('loadingText');
-        if (loadingText) {
-            loadingText.textContent = message;
-        }
-        loadingOverlay.classList.add('active');
-    }
-
-    // 隐藏加载动画
-    function hideLoadingOverlay() {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        loadingOverlay.classList.remove('active');
-    }
-
-    // 显示表单错误
-    function showInputError(inputId, message) {
-        const input = document.getElementById(inputId);
-        const errorDiv = document.getElementById(inputId + '_error');
-
-        if (input && errorDiv) {
-            input.classList.add('error-input');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-    }
-
-    // 清除表单错误
-    function clearInputError(inputId) {
-        const input = document.getElementById(inputId);
-        const errorDiv = document.getElementById(inputId + '_error');
-
-        if (input && errorDiv) {
-            input.classList.remove('error-input');
-            errorDiv.style.display = 'none';
-        }
-    }
-
-    // 表单验证
-    function validateForm() {
-        let isValid = true;
-
-        // 验证AU文件地址（必填）
-        const auInput = document.getElementById('au_file');
-        const auValue = auInput.value.trim();
-
-        if (!auValue) {
-            showInputError('au_file', '请输入AU文件路径');
-            isValid = false;
-        } else {
-            clearInputError('au_file');
-        }
-
-        // 验证参考视频地址
-        const refVideoInput = document.getElementById('ref_video');
-        const refVideoValue = refVideoInput.value.trim();
-
-        if (!refVideoValue) {
-            showInputError('ref_video', '请输入参考视频/图像地址');
-            isValid = false;
-        } else {
-            clearInputError('ref_video');
-        }
-
-        // 如果选择SyncTalk，验证epoch
-        const modelChoice = document.getElementById('model_choice').value;
-        if (modelChoice === 'SyncTalk') {
-            const epochInput = document.getElementById('epoch');
-            const epochValue = parseInt(epochInput.value);
-
-            if (isNaN(epochValue) || epochValue < 1) {
-                showInputError('epoch', '请输入有效的训练轮数（大于0）');
-                isValid = false;
-            } else {
-                clearInputError('epoch');
-            }
-        }
-
-        return isValid;
-    }
-
-    document.getElementById('trainForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        // 验证表单
-        if (!validateForm()) {
-            showNotification('请填写所有必填字段', 'error');
-            return;
-        }
-
-        // 保存AU文件历史记录
-        const auInput = document.getElementById('au_file');
-        if (auInput && auInput.value.trim()) {
-            addAuHistory(auInput.value.trim());
-        }
-
-        const formData = new FormData(this);
-
-        // 显示加载动画（在视频区域显示）
-        showLoadingOverlay('正在启动训练...');
-
-        // 更新状态
-        updateVideoStatus('正在训练模型...');
-
-        // 立即从表单获取视频路径并播放
-        const refVideoPath = formData.get('ref_video');
-        const videoEl = document.getElementById('trainVideo');
-
-        if (refVideoPath) {
-            // 立即设置视频源并播放
-            const newSrc = "/" + refVideoPath.replace("\\", "/") + '?t=' + new Date().getTime();
-            videoEl.src = newSrc;
-            videoEl.load();
-            videoEl.play().catch(e => console.log('自动播放可能被阻止:', e));
-        }
-
-        let trainingData = null; // 用于在finally中访问
-
-        fetch('/model_training', {
-            method: 'POST',
-            body: formData
-        })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP错误: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                trainingData = data; // 保存数据
-                console.log("后端返回数据:", data);
-
-                // 如果训练已开始，开始轮询状态
-                if (data.status === 'started' && data.task_id) {
-                    showLoadingOverlay('训练已开始，正在进行中...');
-                    updateVideoStatus('训练已开始，正在进行中...');
-                    showNotification('训练已开始，请稍候...', 'success');
-                    // 开始轮询训练状态
-                    pollTrainingStatus(data.task_id);
-                    return;
-                }
-
-                // 如果是同步训练（直接返回结果）
-                if (data.status === 'success') {
-                    // 训练成功：停止播放视频，显示训练完成画面
-                    hideLoadingOverlay(); // 隐藏加载动画
-                    const videoEl = document.getElementById('trainVideo');
-                    videoEl.pause();
-                    videoEl.currentTime = 0;
-
-                    // 设置模型路径
-                    const modelPath = data.model_path || '';
-                    document.getElementById('model_path_output').value = modelPath;
-                    document.getElementById('training_result').style.display = 'block';
-                    updateVideoStatus('训练完成！模型路径: ' + modelPath);
-                    showNotification('训练完成！', 'success');
-
-                } else if (data.status === 'error') {
-                    // 后端明确返回错误
-                    hideLoadingOverlay(); // 隐藏加载动画
-                    resetVideoDisplay();
-                    let errorMsg = '处理失败'|| '未知错误';
-                    updateVideoStatus('训练失败: ' + errorMsg, true);
-                    showNotification('训练失败：' + errorMsg, 'error');
-                } else {
-                    // 没有status字段或其他情况
-                    hideLoadingOverlay(); // 隐藏加载动画
-                    resetVideoDisplay();
-                    let errorMsg = '处理失败' || '服务器返回数据格式异常';
-                    updateVideoStatus('训练失败：' + errorMsg, true);
-                    showNotification('训练失败：' + errorMsg, 'error');
-                }
-            })
-            .catch(err => {
-                console.error('请求错误:', err);
-                hideLoadingOverlay(); // 隐藏加载动画
-                resetVideoDisplay();
-                updateVideoStatus('请求错误：' + err.message, true);
-                showNotification('训练失败，请检查网络连接或服务器状态', 'error');
-            })
-            .finally(() => {
-                // 只有在同步训练完成或任务ID不存在时才隐藏加载动画
-                if (!trainingData || (trainingData.status !== 'started' && !trainingData.task_id)) {
-                    setTimeout(() => {
-                        hideLoadingOverlay();
-                    }, 500);
-                }
-            });
-    });
-
-    // 轮询训练状态
-    function pollTrainingStatus(taskId) {
-        const maxAttempts = 17280; // 24小时 = 86400秒 / 5秒 = 17280次
-        let attempts = 0;
-        const pollInterval = 5000; // 每5秒轮询一次
-
-        // 格式化时间显示
-        function formatTime(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const secs = seconds % 60;
-            if (hours > 0) {
-                return `${hours}小时${minutes}分钟${secs}秒`;
-            } else if (minutes > 0) {
-                return `${minutes}分钟${secs}秒`;
-            } else {
-                return `${secs}秒`;
-            }
-        }
-
-        const poll = () => {
-            const elapsedSeconds = Math.floor(attempts * pollInterval / 1000);
-
-            if (attempts >= maxAttempts) {
-                updateVideoStatus('训练时间超过24小时，请检查服务器日志或手动查看训练状态', true);
-                showNotification('训练时间较长，请检查服务器日志确认训练是否仍在进行', 'warning');
-                // 降低轮询频率
-                setTimeout(poll, 30000);
+            if (history.length === 0) {
+                container.innerHTML = '<div class="history-item" style="color: var(--text-secondary); text-align: center;">暂无历史记录</div>';
                 return;
             }
 
-            fetch(`/training_status/${taskId}`)
+            container.innerHTML = history.map(path =>
+                `<div class="history-item" onclick="selectAuPath('${path.replace(/'/g, "\\'")}')">
+                    ${path}
+                </div>`
+            ).join('');
+        }
+
+        // 选择AU路径
+        function selectAuPath(path) {
+            const input = document.getElementById('au_file');
+            if (input) {
+                input.value = path;
+                clearInputError('au_file');
+                // 清除文件信息显示
+                clearFileInfo();
+                // 触发输入事件以保存到历史记录
+                const event = new Event('input', { bubbles: true });
+                input.dispatchEvent(event);
+            }
+            hideHistorySuggestions();
+        }
+
+        // 清除AU历史记录
+        function clearAuHistory() {
+            if (confirm('确定要清除AU文件历史记录吗？')) {
+                localStorage.removeItem(AU_HISTORY_KEY);
+                renderAuHistory();
+                showNotification('历史记录已清除', 'success');
+            }
+        }
+
+        // 显示历史建议
+        function showHistorySuggestions() {
+            const suggestions = document.getElementById('au_history_suggestions');
+            if (suggestions) {
+                suggestions.classList.add('show');
+                renderAuHistory();
+            }
+        }
+
+        // 隐藏历史建议
+        function hideHistorySuggestions() {
+            setTimeout(() => {
+                const suggestions = document.getElementById('au_history_suggestions');
+                if (suggestions) {
+                    suggestions.classList.remove('show');
+                }
+            }, 200);
+        }
+
+        // 处理表单中的AU文件输入
+        function handleAuFileInput() {
+            const auInput = document.getElementById('au_file');
+            if (auInput) {
+                // 监听输入事件，保存历史记录
+                auInput.addEventListener('input', function(e) {
+                    const value = this.value.trim();
+                    if (value && value.length > 0) {
+                        clearInputError('au_file');
+                        // 清除文件信息显示
+                        clearFileInfo();
+                    }
+                });
+
+                // 监听焦点事件
+                auInput.addEventListener('focus', showHistorySuggestions);
+                auInput.addEventListener('blur', function() {
+                    setTimeout(hideHistorySuggestions, 200);
+                });
+
+                // 监听点击事件，防止点击历史项时立即隐藏
+                auInput.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    showHistorySuggestions();
+                });
+            }
+
+            // 点击页面其他地方隐藏历史记录
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.history-dropdown')) {
+                    hideHistorySuggestions();
+                }
+            });
+
+            // 监听历史记录项的鼠标事件
+            document.addEventListener('mousedown', function(e) {
+                if (e.target.closest('.history-item')) {
+                    // 阻止输入框的blur事件
+                    e.preventDefault();
+                }
+            });
+        }
+
+        // 文件选择器功能
+        function openFilePicker() {
+            document.getElementById('au_file_input').click();
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 检查文件类型
+            const allowedTypes = ['text/csv', 'text/plain'];
+            if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.csv')) {
+                showNotification('请选择CSV文件格式', 'error');
+                return;
+            }
+
+            // 显示文件信息
+            showFileInfo(file);
+
+            // 将文件路径设置到输入框中（这里使用文件名作为路径，实际应用中可能需要上传到服务器）
+            const auInput = document.getElementById('au_file');
+            if (auInput) {
+                // 这里可以根据需要设置不同的路径格式
+                // 方案1: 使用相对路径格式
+                const relativePath = 'uploads/au_files/' + file.name;
+                auInput.value = relativePath;
+
+                // 方案2: 或使用原始文件名
+                // auInput.value = file.name;
+
+                clearInputError('au_file');
+
+                // 保存到历史记录
+                addAuHistory(relativePath);
+
+                // 触发输入事件
+                const inputEvent = new Event('input', { bubbles: true });
+                auInput.dispatchEvent(inputEvent);
+            }
+
+            // 实际应用中，这里可以添加文件上传逻辑
+            // uploadFileToServer(file);
+        }
+
+        // 显示文件信息
+        function showFileInfo(file) {
+            const fileInfoDiv = document.getElementById('file_info');
+            if (fileInfoDiv) {
+                const fileSize = formatFileSize(file.size);
+                fileInfoDiv.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${fileSize}</span>
+                `;
+                fileInfoDiv.classList.add('show');
+            }
+        }
+
+        // 清除文件信息
+        function clearFileInfo() {
+            const fileInfoDiv = document.getElementById('file_info');
+            if (fileInfoDiv) {
+                fileInfoDiv.innerHTML = '';
+                fileInfoDiv.classList.remove('show');
+            }
+            // 同时清空文件选择器的值
+            document.getElementById('au_file_input').value = '';
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 返回首页函数
+        function goHome() {
+            // 显示加载动画
+            showLoadingOverlay('正在返回首页...');
+
+            // 清除可能的缓存问题
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+            }
+
+            // 强制刷新首页
+            setTimeout(() => {
+                window.location.href = '/?t=' + new Date().getTime();
+            }, 300);
+        }
+
+        // EPOCH字段显示/隐藏控制
+        function toggleEpochField() {
+            const modelChoice = document.getElementById('model_choice').value;
+            const epochGroup = document.getElementById('epoch_group');
+
+            if (modelChoice === 'SyncTalk') {
+                epochGroup.style.display = 'block';
+            } else {
+                epochGroup.style.display = 'none';
+            }
+        }
+
+        // 复制模型路径
+        function copyModelPath() {
+            const modelPathInput = document.getElementById('model_path_output');
+            modelPathInput.select();
+            document.execCommand('copy');
+            showNotification('模型路径已复制到剪贴板', 'success');
+        }
+
+        // 更新视频状态显示
+        function updateVideoStatus(status, isError = false) {
+            const statusEl = document.getElementById('videoStatus');
+            if (statusEl) {
+                statusEl.textContent = status;
+                statusEl.style.color = isError ? '#ff4757' : 'var(--accent-color)';
+            }
+        }
+
+        // 重置视频显示
+        function resetVideoDisplay() {
+            const videoEl = document.getElementById('trainVideo');
+            const statusEl = document.getElementById('videoStatus');
+
+            // 隐藏加载动画
+            hideLoadingOverlay();
+
+            // 重置视频源到默认
+            const defaultSrc = "{{ url_for('static', filename='videos/sample.mp4') }}";
+            videoEl.src = defaultSrc + '?t=' + new Date().getTime();
+            videoEl.load();
+
+            // 重置状态显示
+            if (statusEl) {
+                statusEl.textContent = '准备训练模型';
+                statusEl.style.color = 'var(--accent-color)';
+            }
+        }
+
+        // 显示加载动画
+        function showLoadingOverlay(message = '训练中...') {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            if (loadingText) {
+                loadingText.textContent = message;
+            }
+            loadingOverlay.classList.add('active');
+        }
+
+        // 隐藏加载动画
+        function hideLoadingOverlay() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.remove('active');
+        }
+
+        // 显示表单错误
+        function showInputError(inputId, message) {
+            const input = document.getElementById(inputId);
+            const errorDiv = document.getElementById(inputId + '_error');
+
+            if (input && errorDiv) {
+                input.classList.add('error-input');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // 清除表单错误
+        function clearInputError(inputId) {
+            const input = document.getElementById(inputId);
+            const errorDiv = document.getElementById(inputId + '_error');
+
+            if (input && errorDiv) {
+                input.classList.remove('error-input');
+                errorDiv.style.display = 'none';
+            }
+        }
+
+        // 表单验证
+        function validateForm() {
+            let isValid = true;
+
+            // 验证AU文件地址（必填）
+            const auInput = document.getElementById('au_file');
+            const auValue = auInput.value.trim();
+
+            if (!auValue) {
+                showInputError('au_file', '请输入AU文件路径或选择文件');
+                isValid = false;
+            } else {
+                clearInputError('au_file');
+            }
+
+            // 验证参考视频地址
+            const refVideoInput = document.getElementById('ref_video');
+            const refVideoValue = refVideoInput.value.trim();
+
+            if (!refVideoValue) {
+                showInputError('ref_video', '请输入参考视频/图像地址');
+                isValid = false;
+            } else {
+                clearInputError('ref_video');
+            }
+
+            // 如果选择SyncTalk，验证epoch
+            const modelChoice = document.getElementById('model_choice').value;
+            if (modelChoice === 'SyncTalk') {
+                const epochInput = document.getElementById('epoch');
+                const epochValue = parseInt(epochInput.value);
+
+                if (isNaN(epochValue) || epochValue < 1) {
+                    showInputError('epoch', '请输入有效的训练轮数（大于0）');
+                    isValid = false;
+                } else {
+                    clearInputError('epoch');
+                }
+            }
+
+            return isValid;
+        }
+
+        document.getElementById('trainForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // 验证表单
+            if (!validateForm()) {
+                showNotification('请填写所有必填字段', 'error');
+                return;
+            }
+
+            // 保存AU文件历史记录
+            const auInput = document.getElementById('au_file');
+            if (auInput && auInput.value.trim()) {
+                addAuHistory(auInput.value.trim());
+            }
+
+            const formData = new FormData(this);
+
+            // 显示加载动画（在视频区域显示）
+            showLoadingOverlay('正在启动训练...');
+
+            // 更新状态
+            updateVideoStatus('正在训练模型...');
+
+            // 立即从表单获取视频路径并播放
+            const refVideoPath = formData.get('ref_video');
+            const videoEl = document.getElementById('trainVideo');
+
+            if (refVideoPath) {
+                // 立即设置视频源并播放
+                const newSrc = "/" + refVideoPath.replace("\\", "/") + '?t=' + new Date().getTime();
+                videoEl.src = newSrc;
+                videoEl.load();
+                videoEl.play().catch(e => console.log('自动播放可能被阻止:', e));
+            }
+
+            let trainingData = null; // 用于在finally中访问
+
+            fetch('/model_training', {
+                method: 'POST',
+                body: formData
+            })
                 .then(res => {
                     if (!res.ok) {
                         throw new Error(`HTTP错误: ${res.status}`);
@@ -1025,183 +1086,283 @@
                     return res.json();
                 })
                 .then(data => {
-                    console.log("训练状态:", data);
-                    console.log("状态字段:", data.status);
-                    console.log("消息字段:", data.message);
+                    trainingData = data; // 保存数据
+                    console.log("后端返回数据:", data);
 
-                    // 直接根据状态处理
-                    if (data.status === 'error') {
-                        // 训练失败
-                        hideLoadingOverlay(); // 隐藏加载动画
-                        resetVideoDisplay();
-                        let errorMsg ='处理失败' || '未知错误';
-                        updateVideoStatus('训练失败: ' + errorMsg, true);
-                        showNotification('训练失败：' + errorMsg, 'error');
+                    // 如果训练已开始，开始轮询状态
+                    if (data.status === 'started' && data.task_id) {
+                        showLoadingOverlay('训练已开始，正在进行中...');
+                        updateVideoStatus('训练已开始，正在进行中...');
+                        showNotification('训练已开始，请稍候...', 'success');
+                        // 开始轮询训练状态
+                        pollTrainingStatus(data.task_id);
                         return;
                     }
 
-                    if (data.status === 'success' || data.status === 'completed') {
-                        // 训练完成
+                    // 如果是同步训练（直接返回结果）
+                    if (data.status === 'success') {
+                        // 训练成功：停止播放视频，显示训练完成画面
                         hideLoadingOverlay(); // 隐藏加载动画
                         const videoEl = document.getElementById('trainVideo');
                         videoEl.pause();
                         videoEl.currentTime = 0;
 
+                        // 设置模型路径
                         const modelPath = data.model_path || '';
                         document.getElementById('model_path_output').value = modelPath;
                         document.getElementById('training_result').style.display = 'block';
-                        updateVideoStatus('训练完成！模型路径: ' + modelPath + ` (总耗时: ${formatTime(elapsedSeconds)})`);
+                        updateVideoStatus('训练完成！模型路径: ' + modelPath);
                         showNotification('训练完成！', 'success');
-                        return;
+
+                    } else if (data.status === 'error') {
+                        // 后端明确返回错误
+                        hideLoadingOverlay(); // 隐藏加载动画
+                        resetVideoDisplay();
+                        let errorMsg ='处理失败'|| '未知错误';
+                        updateVideoStatus('训练失败: ' + errorMsg, true);
+                        showNotification('训练失败：' + errorMsg, 'error');
+                    } else {
+                        // 没有status字段或其他情况
+                        hideLoadingOverlay(); // 隐藏加载动画
+                        resetVideoDisplay();
+                        let errorMsg = '处理失败' || '服务器返回数据格式异常';
+                        updateVideoStatus('训练失败：' + errorMsg, true);
+                        showNotification('训练失败：' + errorMsg, 'error');
                     }
-
-                    // 训练进行中，继续轮询
-                    attempts++;
-
-                    let statusMessage = `训练进行中... (已等待 ${formatTime(elapsedSeconds)})`;
-
-                    // 更新加载动画文本
-                    const loadingText = document.getElementById('loadingText');
-                    if (loadingText) {
-                        loadingText.textContent = statusMessage;
-                    }
-
-                    // 如果有进度信息，显示进度
-                    if (data.progress) {
-                        statusMessage += '\n进度: ' + data.progress;
-                        if (loadingText) {
-                            loadingText.textContent += '\n进度: ' + data.progress;
-                        }
-                    }
-
-                    // 如果有阶段信息，显示阶段
-                    if (data.stage) {
-                        statusMessage += '\n当前阶段: ' + data.stage;
-                        if (loadingText) {
-                            loadingText.textContent += '\n当前阶段: ' + data.stage;
-                        }
-                    }
-
-                    updateVideoStatus(statusMessage);
-
-                    // 如果有完成时间估计，显示估计
-                    if (data.estimated_time) {
-                        updateVideoStatus(statusMessage + '\n预计剩余时间: ' + data.estimated_time);
-                        if (loadingText) {
-                            loadingText.textContent += '\n预计剩余时间: ' + data.estimated_time;
-                        }
-                    }
-
-                    setTimeout(poll, pollInterval);
                 })
                 .catch(err => {
-                    console.error('轮询错误:', err);
-                    attempts++;
-                    if (attempts < maxAttempts) {
-                        // 网络错误时，延长轮询间隔到10秒
-                        const loadingText = document.getElementById('loadingText');
-                        if (loadingText) {
-                            loadingText.textContent = `网络错误，重试中... (已等待 ${formatTime(elapsedSeconds)})`;
-                        }
-                        updateVideoStatus(`网络错误，重试中... (已等待 ${formatTime(elapsedSeconds)})`, true);
-                        setTimeout(poll, 10000);
-                    } else {
-                        hideLoadingOverlay(); // 隐藏加载动画
-                        updateVideoStatus('无法获取训练状态，请检查服务器连接', true);
-                        showNotification('无法获取训练状态，请检查服务器连接', 'error');
+                    console.error('请求错误:', err);
+                    hideLoadingOverlay(); // 隐藏加载动画
+                    resetVideoDisplay();
+                    updateVideoStatus('请求错误：' + err.message, true);
+                    showNotification('训练失败，请检查网络连接或服务器状态', 'error');
+                })
+                .finally(() => {
+                    // 只有在同步训练完成或任务ID不存在时才隐藏加载动画
+                    if (!trainingData || (trainingData.status !== 'started' && !trainingData.task_id)) {
+                        setTimeout(() => {
+                            hideLoadingOverlay();
+                        }, 500);
                     }
                 });
-        };
+        });
 
-        // 开始轮询
-        setTimeout(poll, pollInterval);
-    }
+        // 轮询训练状态
+        function pollTrainingStatus(taskId) {
+            const maxAttempts = 17280; // 24小时 = 86400秒 / 5秒 = 17280次
+            let attempts = 0;
+            const pollInterval = 5000; // 每5秒轮询一次
 
-    // 通知提示函数
-    function showNotification(message, type) {
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            background: ${type === 'success' ? 'linear-gradient(135deg, #00c6ff, #0072ff)' : 'linear-gradient(135deg, #ff4757, #ff6348)'};
-            color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-            z-index: 10000;
-            animation: slideIn 0.3s ease;
-            font-weight: bold;
+            // 格式化时间显示
+            function formatTime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                if (hours > 0) {
+                    return `${hours}小时${minutes}分钟${secs}秒`;
+                } else if (minutes > 0) {
+                    return `${minutes}分钟${secs}秒`;
+                } else {
+                    return `${secs}秒`;
+                }
+            }
+
+            const poll = () => {
+                const elapsedSeconds = Math.floor(attempts * pollInterval / 1000);
+
+                if (attempts >= maxAttempts) {
+                    updateVideoStatus('训练时间超过24小时，请检查服务器日志或手动查看训练状态', true);
+                    showNotification('训练时间较长，请检查服务器日志确认训练是否仍在进行', 'warning');
+                    // 降低轮询频率
+                    setTimeout(poll, 30000);
+                    return;
+                }
+
+                fetch(`/training_status/${taskId}`)
+                    .then(res => {
+                        if (!res.ok) {
+                            throw new Error(`HTTP错误: ${res.status}`);
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        console.log("训练状态:", data);
+                        console.log("状态字段:", data.status);
+                        console.log("消息字段:", data.message);
+
+                        // 直接根据状态处理
+                        if (data.status === 'error') {
+                            // 训练失败
+                            hideLoadingOverlay(); // 隐藏加载动画
+                            resetVideoDisplay();
+                            let errorMsg ='处理失败' || '未知错误';
+                            updateVideoStatus('训练失败: ' + errorMsg, true);
+                            showNotification('训练失败：' + errorMsg, 'error');
+                            return;
+                        }
+
+                        if (data.status === 'success' || data.status === 'completed') {
+                            // 训练完成
+                            hideLoadingOverlay(); // 隐藏加载动画
+                            const videoEl = document.getElementById('trainVideo');
+                            videoEl.pause();
+                            videoEl.currentTime = 0;
+
+                            const modelPath = data.model_path || '';
+                            document.getElementById('model_path_output').value = modelPath;
+                            document.getElementById('training_result').style.display = 'block';
+                            updateVideoStatus('训练完成！模型路径: ' + modelPath + ` (总耗时: ${formatTime(elapsedSeconds)})`);
+                            showNotification('训练完成！', 'success');
+                            return;
+                        }
+
+                        // 训练进行中，继续轮询
+                        attempts++;
+
+                        let statusMessage = `训练进行中... (已等待 ${formatTime(elapsedSeconds)})`;
+
+                        // 更新加载动画文本
+                        const loadingText = document.getElementById('loadingText');
+                        if (loadingText) {
+                            loadingText.textContent = statusMessage;
+                        }
+
+                        // 如果有进度信息，显示进度
+                        if (data.progress) {
+                            statusMessage += '\n进度: ' + data.progress;
+                            if (loadingText) {
+                                loadingText.textContent += '\n进度: ' + data.progress;
+                            }
+                        }
+
+                        // 如果有阶段信息，显示阶段
+                        if (data.stage) {
+                            statusMessage += '\n当前阶段: ' + data.stage;
+                            if (loadingText) {
+                                loadingText.textContent += '\n当前阶段: ' + data.stage;
+                            }
+                        }
+
+                        updateVideoStatus(statusMessage);
+
+                        // 如果有完成时间估计，显示估计
+                        if (data.estimated_time) {
+                            updateVideoStatus(statusMessage + '\n预计剩余时间: ' + data.estimated_time);
+                            if (loadingText) {
+                                loadingText.textContent += '\n预计剩余时间: ' + data.estimated_time;
+                            }
+                        }
+
+                        setTimeout(poll, pollInterval);
+                    })
+                    .catch(err => {
+                        console.error('轮询错误:', err);
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            // 网络错误时，延长轮询间隔到10秒
+                            const loadingText = document.getElementById('loadingText');
+                            if (loadingText) {
+                                loadingText.textContent = `网络错误，重试中... (已等待 ${formatTime(elapsedSeconds)})`;
+                            }
+                            updateVideoStatus(`网络错误，重试中... (已等待 ${formatTime(elapsedSeconds)})`, true);
+                            setTimeout(poll, 10000);
+                        } else {
+                            hideLoadingOverlay(); // 隐藏加载动画
+                            updateVideoStatus('无法获取训练状态，请检查服务器连接', true);
+                            showNotification('无法获取训练状态，请检查服务器连接', 'error');
+                        }
+                    });
+            };
+
+            // 开始轮询
+            setTimeout(poll, pollInterval);
+        }
+
+        // 通知提示函数
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? 'linear-gradient(135deg, #00c6ff, #0072ff)' : 'linear-gradient(135deg, #ff4757, #ff6348)'};
+                color: white;
+                border-radius: 10px;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                font-weight: bold;
+            `;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // 添加动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
         `;
-        notification.textContent = message;
+        document.head.appendChild(style);
 
-        document.body.appendChild(notification);
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const body = document.body;
+            // 恢复主题设置
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                body.classList.add('light-theme');
+            }
 
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
+            // 初始化EPOCH字段状态
+            toggleEpochField();
 
-    // 添加动画样式
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
+            // 初始化AU文件历史记录功能
+            handleAuFileInput();
+            renderAuHistory();
 
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', function() {
-        const body = document.body;
-        // 恢复主题设置
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'light') {
-            body.classList.add('light-theme');
-        }
+            // 监听输入框变化，清除错误状态
+            const auInput = document.getElementById('au_file');
+            if (auInput) {
+                auInput.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        clearInputError('au_file');
+                    }
+                });
+            }
 
-        // 初始化EPOCH字段状态
-        toggleEpochField();
+            const refVideoInput = document.getElementById('ref_video');
+            if (refVideoInput) {
+                refVideoInput.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        clearInputError('ref_video');
+                    }
+                });
+            }
 
-        // 初始化AU文件历史记录功能
-        handleAuFileInput();
-        renderAuHistory();
-
-        // 监听输入框变化，清除错误状态
-        const auInput = document.getElementById('au_file');
-        if (auInput) {
-            auInput.addEventListener('input', function() {
-                if (this.value.trim()) {
-                    clearInputError('au_file');
-                }
-            });
-        }
-
-        const refVideoInput = document.getElementById('ref_video');
-        if (refVideoInput) {
-            refVideoInput.addEventListener('input', function() {
-                if (this.value.trim()) {
-                    clearInputError('ref_video');
-                }
-            });
-        }
-
-        const epochInput = document.getElementById('epoch');
-        if (epochInput) {
-            epochInput.addEventListener('input', function() {
-                const value = parseInt(this.value);
-                if (!isNaN(value) && value > 0) {
-                    clearInputError('epoch');
-                }
-            });
-        }
-    });
-</script>
-</body>  
+            const epochInput = document.getElementById('epoch');
+            if (epochInput) {
+                epochInput.addEventListener('input', function() {
+                    const value = parseInt(this.value);
+                    if (!isNaN(value) && value > 0) {
+                        clearInputError('epoch');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
 </html>
