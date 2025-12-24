@@ -85,17 +85,20 @@ def train_model(data):
                 else:
                     print(f"[backend.model_trainer] 目标视频已存在且较新，跳过复制")
                 
-                # 更新 video_path 为训练目录中的路径
+                # 更新 video_path 为训练目录中的路径（此时 dataset_path 已经是 TalkingGaussian/data/<video_name>）
                 video_path = target_video_path
-            else:
-                # 原有逻辑：从视频路径推断数据目录
-                video_dir = os.path.dirname(video_path)
             
-            # 如果视频路径不包含完整路径，尝试构建
-            if not os.path.isabs(video_path) and not video_path.startswith('TalkingGaussian/'):
-                dataset_path = os.path.join("TalkingGaussian", "data", video_name)
-            else:
-                dataset_path = video_dir
+            # 统一确定 dataset_path：
+            # - 如果前面是上传目录分支，dataset_path 已经在上面设置好了（TalkingGaussian/data/<video_name>）
+            # - 否则，根据视频路径推断数据目录
+            if 'dataset_path' not in locals():
+                # 对于非上传目录的视频：
+                #   - 相对简单路径：默认放在 TalkingGaussian/data/<video_name>
+                #   - 绝对路径或已经在 TalkingGaussian/ 下：使用其所在目录
+                if not os.path.isabs(video_path) and not video_path.startswith('TalkingGaussian/'):
+                    dataset_path = os.path.join("TalkingGaussian", "data", video_name)
+                else:
+                    dataset_path = os.path.dirname(video_path)
             
             # 检查数据是否已预处理（检查 transforms_train.json）
             transforms_file = os.path.join(dataset_path, "transforms_train.json")
