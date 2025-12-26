@@ -31,3 +31,12 @@ TalkingGaussian/evaluation/_work/
 
 # API配置文件
 backend/config/api_config.json
+
+# Docker镜像文件
+*.tar.gz
+tfg_ui_image.tar.gz
+
+# OpenFace 下载文件
+OpenFace_*.zip
+OpenFace_*.tar.gz
+OpenFace_*/

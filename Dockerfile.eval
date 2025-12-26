@@ -9,7 +9,6 @@ WORKDIR /app
 
 # 确保评测脚本有执行权限（主镜像已复制，这里只是确保权限）
 RUN chmod +x TalkingGaussian/evaluation/run_eval.sh && \
-    chmod +x TalkingGaussian/evaluation/run_eval_from_system.sh && \
     chmod +x TalkingGaussian/evaluation/*.sh 2>/dev/null || true
 
 # 默认命令：运行评测脚本（使用新的 run_eval.sh）
