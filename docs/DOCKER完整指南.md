@@ -313,10 +313,20 @@ docker builder prune -a
 # 预测视频位置：static/videos/talkinggaussian_*.mp4（视频生成界面生成）
 # 真实视频位置：TalkingGaussian/data/<project_name>/<project_name>.mp4（训练用的原始视频）
 
-# 使用便捷脚本（自动查找文件）
-docker exec -it tfg_ui bash TalkingGaussian/evaluation/run_eval_from_system.sh \
-  --project_name May \
-  --output_file /app/static/metrics.json
+# 使用统一评测脚本（推荐）
+docker exec -it tfg_ui bash
+cd TalkingGaussian/evaluation
+
+# 查找系统生成的视频
+ls -lh /app/static/videos/
+# TalkingGaussian生成的视频：talkinggaussian_*.mp4
+
+# 运行评测
+bash run_eval.sh \
+  --pred-video /app/static/videos/talkinggaussian_xxx.mp4 \
+  --gt-video /app/TalkingGaussian/data/May/May.mp4 \
+  --all \
+  --json-out /app/static/metrics.json
 ```
 
 #### 方法二：手动准备评测数据
@@ -343,9 +353,10 @@ docker run --rm \
   -v $(pwd)/evaluation_gt:/app/gt \
   -v $(pwd)/evaluation_output:/app/output \
   tfg_ui:eval \
-  --pred_dir /app/pred \
-  --gt_dir /app/gt \
-  --output_file /app/output/metrics.json
+  --pred-video /app/pred/video.mp4 \
+  --gt-video /app/gt/video.mp4 \
+  --all \
+  --json-out /app/output/metrics.json
 ```
 
 #### 方法二：在主容器中运行（使用系统生成的文件）
@@ -354,16 +365,19 @@ docker run --rm \
 # 进入主容器
 docker exec -it tfg_ui bash
 
-# 方式A：使用便捷脚本（自动查找文件，推荐）
-bash TalkingGaussian/evaluation/run_eval_from_system.sh \
-  --project_name May \
-  --output_file /app/static/metrics.json
+# 使用统一评测脚本（推荐）
+cd TalkingGaussian/evaluation
 
-# 方式B：手动指定路径
-bash TalkingGaussian/evaluation/run_all_metrics.sh \
-  --pred_dir /app/static/videos/talkinggaussian_tts_output_20251223_213711.mp4 \
-  --gt_dir /app/TalkingGaussian/data/May/May.mp4 \
-  --output_file /app/static/metrics.json
+# 查找系统生成的视频
+ls -lh /app/static/videos/
+# TalkingGaussian生成的视频：talkinggaussian_*.mp4
+
+# 运行评测
+bash run_eval.sh \
+  --pred-video /app/static/videos/talkinggaussian_xxx.mp4 \
+  --gt-video /app/TalkingGaussian/data/May/May.mp4 \
+  --all \
+  --json-out /app/static/metrics.json
 ```
 
 ### 5.4 查看评测结果
