@@ -294,4 +294,4 @@ def upload_au():
 if __name__ == '__main__':
     # host='0.0.0.0' 允许从外部访问（华为云服务器需要）
     # debug=True 开发模式，生产环境应设置为False
-    app.run(debug=True, host='0.0.0.0', port=5002)
+    app.run(debug=True, host='0.0.0.0', port=5001)
